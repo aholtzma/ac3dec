@@ -371,7 +371,8 @@ exponent.o: exponent.c ac3.h decode.h exponent.h
 imdct.o: imdct.c ac3.h decode.h imdct.h
 mantissa.o: mantissa.c ac3.h decode.h bitstream.h mantissa.h
 matlab.o: matlab.c matlab.h
-output.o: output.c config.h ac3.h decode.h output.h
+output.o: output.c config.h ac3.h decode.h debug.h output.h \
+	ring_buffer.h
 parse.o: parse.c ac3.h decode.h bitstream.h stats.h parse.h
 ring_buffer.o: ring_buffer.c ring_buffer.h
 stats.o: stats.c ac3.h decode.h stats.h debug.h

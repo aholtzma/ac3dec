@@ -1,9 +1,7 @@
 /*
  *
- *  output.c
- *
- *  Based on original code by Angus Mackay (amackay@gus.ml.org)
- *
+ *  output_linux.c
+ *    
  *	Copyright (C) Aaron Holtzman - May 1999
  *
  *  This file is part of ac3dec, a free Dolby AC-3 stream decoder.
@@ -22,12 +20,8 @@
  *  along with GNU Make; see the file COPYING.  If not, write to
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
  *
+ *
  */
-
-//FIXME This is just the solaris driver ifdefed out so it will compile
-//cleanly
-
-
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -38,72 +32,101 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <sys/soundcard.h>
 #include <sys/ioctl.h>
 
 
 #include "ac3.h"
 #include "decode.h"
+#include "debug.h"
 #include "output.h"
+#include "ring_buffer.h"
 
-#if 0
-/* Global to keep track of old state */
-static char dev[] = "/dev/audio";
-//static audio_info_t info;
+
+#define BUFFER_SIZE 1024 
+
+static char dev[] = "/dev/dsp";
 static int fd;
-static sint_16 out_buf[1024];
-#endif
+
+//FIXME uncomment all the matlab calls in this module
+//      and you'll get a handy matlab output file
+//      of the signal.
+//#include "matlab.h"
+//static matlab_file_t *foo;
+//
+
 
 /*
  * open the audio device for writing to
  */
 int output_open(int bits, int rate, int channels)
 {
-
-	fprintf(stderr,"Sorry, ac3dec currently does not support audio output on Linux\n");
-	exit(1);
-#if 0
+  int tmp;
+  
   /*
-   * Open the device driver:
+   * Open the device driver
    */
 
 	fd=open(dev,O_WRONLY | O_NDELAY);
   if(fd < 0) 
   {
-    printf("%s: Opening audio device %s\n",
+    dprintf("%s: Opening audio device %s\n",
         strerror(errno), dev);
     goto ERR;
   }
-	printf("Opened audio device \"%s\"\n",dev);
+	dprintf("Opened audio device \"%s\"\n",dev);
 
+	fcntl(fd,F_SETFL,O_NONBLOCK);
 
-	/* Setup our parameters */
-	AUDIO_INITINFO(&info);
+  tmp = bits;
+  ioctl(fd,SNDCTL_DSP_SAMPLESIZE,&tmp);
 
-	info.play.sample_rate = rate;
-	info.play.precision = bits;
-	info.play.channels = channels;
-	info.play.encoding = AUDIO_ENCODING_LINEAR;
-	info.play.port = AUDIO_SPEAKER;
+  tmp = channels == 2 ? 1 : 0;
+  ioctl(fd,SNDCTL_DSP_STEREO,&tmp);
 
-	/* Write our configuration */
-	/* An implicit GETINFO is also performed so we can get
-	 * the buffer_size */
+  tmp = rate;
+  ioctl(fd,SNDCTL_DSP_SPEED, &tmp);
 
-  if(ioctl(fd, AUDIO_SETINFO, &info) < 0)
-  {
-    fprintf(stderr, "%s: Writing audio config block\n",strerror(errno));
-    goto ERR;
-  }
+	/* Initialize the ring buffer */
+	rb_init();
 
-	printf("buffer_size = %d\n",info.play.buffer_size);
-
-  return 1;
+	//FIXME remove
+	//	foo = matlab_open("foo.m");
+	//
+	
+	return 1;
 
 ERR:
   if(fd >= 0) { close(fd); }
   return 0;
-#endif
-	return 1;
+}
+
+static void
+output_flush(void)
+{
+	int i,j = 0;
+	sint_16 *out_buf = 0;
+
+	i = 0;
+
+	do
+	{
+		out_buf = rb_begin_read();
+		if(out_buf)
+			i = write(fd, out_buf,BUFFER_SIZE);
+		else
+			break;
+
+		if(i == BUFFER_SIZE)
+		{
+			rb_end_read();
+			j++;
+		}
+	}
+	while(i == BUFFER_SIZE);
+	
+	//FIXME remove
+	//fprintf(stderr,"(output) Flushed %d blocks, wrote %d bytes last frame\n",j,i);
 }
 
 /*
@@ -111,62 +134,51 @@ ERR:
  */
 void output_play(stream_samples_t *samples)
 {
-#if 0
   int i;
-	float max_left = 0.0;
-	float max_right =  0.0;
 	float left_sample;
 	float right_sample;
+	sint_16 *out_buf;
 
-	/* Take the floating point audio data and convert it into
-	 * 16 bit signed LE data */
+	if(fd < 0)
+		return;
 
-	for(i=0; i < 512; i++)
+	out_buf = rb_begin_write();
+
+	/* Keep trying to dump frames from the ring buffer until we get a 
+	 * write slot available */
+	while(!out_buf)
 	{
-		left_sample = samples->channel[0][i];
-		right_sample = samples->channel[1][i];
-		max_left = left_sample > max_left ? left_sample : max_left;
-		max_right = right_sample > max_right ? right_sample : max_right;
-
-		out_buf[i * 2] = left_sample * 65536.0;
-		out_buf[i * 2 + 1] = right_sample * 65536.0;
-	}
+		usleep(5000);
+		output_flush();
+		out_buf = rb_begin_write();
+	} 
 
 	//FIXME remove
-	//printf("max_left = %f max_right = %f\n",max_left,max_right);
+	//matlab_write(foo,samples->channel[0],512);
+	
+	/* Take the floating point audio data and convert it into
+	 * 16 bit signed PCM data */
 
+	for(i=0; i < 256; i++)
+	{
+		sint_16 left_pcm;
+		sint_16 right_pcm;
 
-  char *p;
-	uint_t bufsize = info.play.buffer_size;
-  p = out_buf;
+		left_sample = samples->channel[0][i];
+		right_sample = samples->channel[1][i];
 
-  for(i=0; i<1024; i+=bufsize)
-  {
-    n = (size - i < bufsize) ? (size - i) : bufsize;
+		left_pcm = left_sample * 32000.0;
+		out_buf[i * 2 ] = left_pcm;
+		right_pcm = right_sample * 32000.0;
+		out_buf[i * 2 + 1] = right_pcm;
+	}
+	rb_end_write();
 
-		//FIXME turn audio on sometime
-    if(write(fd, &(p[i]), n) != n)
-    {
-      fprintf(stderr, "write on %d: %s\n", fd, strerror(errno));
-      exit(1);
-    }
-  }
-#endif
 }
 
 
 void
 output_close(void)
 {
-#if 0
-	/* Reset the saved parameters */
-
-  if(ioctl(fd, AUDIO_SETINFO, &info) < 0)
-  {
-    fprintf(stderr, "%s: Writing audio config block\n",strerror(errno));
-  }
-
 	close(fd);
-
-#endif 
 }

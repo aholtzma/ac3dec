@@ -2,10 +2,14 @@ ac3dec - a free AC-3 stream decoder
 
 Written by Aaron Holtzman (aholtzma@engr.uvic.ca)
 
+Contributors:
+  Michael Holzt <kju@flummi.de>
+
 See the file COPYING for license details.
 
-Currently the only platform supported is SOLARIS. If you want
-Linux support, then take a look at output_linux.c and hack away.
+The currently supported platforms are Linux and Solaris. If you want
+support for other plaforms, take a look at output_*.c for an idea
+of what you need to do.
 
 This software is completely useless to 99.99 percent of users
 out there. It is mostly of use to those interested in audio
@@ -26,10 +30,10 @@ this:
 
   ./tools/extract_ac3 foo.vob | ./decode
 
-NEWS
+DEBUG OUTPUT
 
-ac3dec-0.5.0  Wed Jun 23 11:06:06 EDT 1999
--First public release of ac3dec.
+You can get a whole pile of debug info by setting the environment
+variable AC3_DEBUG=1. Be sure to pipe stderr to a file or you probably
+won't get realtime playback. You can pipe stderr to a file like so:
 
-ac3dec-0.5.1  Wed Jun 30 17:48:52 PDT 1999
--Compiles and dies gracefully under Linux now.
+  ./decode foo.ac3 2> debug.out

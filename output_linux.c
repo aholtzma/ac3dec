@@ -59,6 +59,8 @@ static sint_16 out_buf[1024];
 int output_open(int bits, int rate, int channels)
 {
 
+	fprintf(stderr,"Sorry, ac3dec currently does not support audio output on Linux\n");
+	exit(1);
 #if 0
   /*
    * Open the device driver:

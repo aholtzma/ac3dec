@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <sys/time.h>
 
+#ifdef HAVE_HRTIME
 hrtime_t (*get_time)(void);
 
 void
@@ -55,3 +56,10 @@ double timing_once_3(void (*func)(void*,void*,void*),void *arg_1,void *arg_2,voi
 
 	return (end - start);
 }
+
+#else /* HAVE_HRTIME */
+
+void timing_init(void) { }
+double timing_once_3(void (*func)(void*,void*,void*),void *arg_1,void *arg_2,void *arg_3) { }
+timing_test_2(void (*func)(void*,void*),void *arg_1,void *arg_2,char name[]) {}
+#endif

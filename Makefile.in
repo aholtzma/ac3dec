@@ -360,6 +360,22 @@ distdir: $(DISTFILES)
 	      || exit 1; \
 	  fi; \
 	done
+bit_allocate.o: bit_allocate.c ac3.h
+bitstream.o: bitstream.c ac3.h decode.h crc.h bitstream.h
+crc.o: crc.c ac3.h crc.h
+debug.o: debug.c debug.h
+decode.o: decode.c ac3.h decode.h bitstream.h imdct.h exponent.h \
+	mantissa.h bit_allocate.h uncouple.h parse.h output.h crc.h \
+	debug.h
+exponent.o: exponent.c ac3.h decode.h exponent.h
+imdct.o: imdct.c ac3.h decode.h imdct.h
+mantissa.o: mantissa.c ac3.h decode.h bitstream.h mantissa.h
+matlab.o: matlab.c matlab.h
+output.o: output.c config.h ac3.h decode.h output.h
+parse.o: parse.c ac3.h decode.h bitstream.h stats.h parse.h
+ring_buffer.o: ring_buffer.c ring_buffer.h
+stats.o: stats.c ac3.h decode.h stats.h debug.h
+uncouple.o: uncouple.c ac3.h decode.h uncouple.h
 
 info-am:
 info: info-recursive

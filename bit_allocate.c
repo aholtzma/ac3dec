@@ -22,6 +22,7 @@
  */
 
 #include <stdlib.h>
+#include <string.h>
 #include "ac3.h"
 
 static inline sint_16 logadd(sint_16 a,sint_16  b);

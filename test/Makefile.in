@@ -217,6 +217,14 @@ distdir: $(DISTFILES)
 	    || cp -p $$d/$$file $(distdir)/$$file || :; \
 	  fi; \
 	done
+bitstream_test.o: bitstream_test.c ../ac3.h ../bitstream.h
+imdct_test.o: imdct_test.c ../ac3.h ../bitstream.h ../decode.h \
+	../imdct.h
+imdct_timing.o: imdct_timing.c timing.h ../ac3.h ../decode.h \
+	../bitstream.h ../imdct.h
+timing.o: timing.c
+uncouple_timing.o: uncouple_timing.c timing.h ../ac3.h ../decode.h \
+	../bitstream.h ../imdct.h
 
 info-am:
 info: info-am

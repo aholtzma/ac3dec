@@ -5,3 +5,4 @@
 - Separate uint_* typedefs from ac3.h
 - Fix coupling channel support
 - Add delta bit allocation support
+- Detect hrtime on solaris and enable it via config.h

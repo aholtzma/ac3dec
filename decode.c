@@ -54,9 +54,7 @@ int main(int argc,char *argv[])
 {
 	int i,j=0;
 	bitstream_t *bs;
-	uint_32 bits_per_audblk;
 	FILE *in_file;
-	hrtime_t start;
 
 	/* If we get an argument then use it as a filename... otherwise use
 	 * stdin */
@@ -92,35 +90,30 @@ int main(int argc,char *argv[])
 
 		for(i=0; i < 6; i++)
 		{
-			//FIXME remove debugging stuff
-		start = gethrtime();
 
 			/* Extract most of the audblk info from the bitstream
 			 * (minus the mantissas */
-			bits_per_audblk = bs->total_bits_read;
-
 			parse_audblk(&bsi,&audblk,bs);
-		decode_sanity_check();
+			decode_sanity_check();
 
 			/* Take the differential exponent data and turn it into
 			 * absolute exponents */
 			exponent_unpack(&bsi,&audblk,&stream_coeffs); 
-		decode_sanity_check();
-		//fprintf(stderr,"ba - %lld ns ",gethrtime() - start);
+			decode_sanity_check();
+
 			/* Figure out how many bits per mantissa */
 			bit_allocate(syncinfo.fscod,&bsi,&audblk);
-		decode_sanity_check();
+			decode_sanity_check();
 
-		//fprintf(stderr,"mant - %lld ns ",gethrtime() - start);
 			/* Extract the mantissas from the data stream */
 			mantissa_unpack(&bsi,&audblk,bs);
-		decode_sanity_check();
+			decode_sanity_check();
 
 			/* Uncouple the coupling channel if it exists and
 			 * convert the mantissa and exponents to IEEE floating
 			 * point format */
 			uncouple(&bsi,&audblk,&stream_coeffs);
-		decode_sanity_check();
+			decode_sanity_check();
 
 #if 0
 			/* Perform dynamic range compensation */
@@ -130,20 +123,12 @@ int main(int argc,char *argv[])
 			downmix(&bsi,&audblk,&stream_coeffs); 
 #endif
 
-		//fprintf(stderr,"imdct - %lld ns ",gethrtime() - start);
 			/* Convert the frequency data into time samples */
 			imdct(&bsi,&audblk,&stream_coeffs,&stream_samples);
-		decode_sanity_check();
+			decode_sanity_check();
 
-		//fprintf(stderr,"output - %lld ns ",gethrtime() - start);
 			/* Send the samples to the output device */
 			output_play(&stream_samples);
-
-			//FIXME remove
-			//fprintf(stderr,"%ld bits for this audblk\n",
-			//		bs->total_bits_read - bits_per_audblk );
-	//fprintf(stderr,"%lld ns\n",gethrtime() - start);
-
 		}
 		parse_auxdata(bs);
 
@@ -156,10 +141,8 @@ int main(int argc,char *argv[])
 			dprintf("(crc) CRC check passed\n");
 		}
 
-		//FIXME remove
-		//fprintf(stderr,"      %ld bits (%ld words) read\n",
-		//		bs->total_bits_read,bs->total_bits_read/16);
 		decode_sanity_check();
+
 		if(bitstream_done(bs))
 			break;
 	}

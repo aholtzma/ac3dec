@@ -1,6 +1,6 @@
 /*
  * parse.c
- * Copyright (C) 2000-2001 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
  * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of a52dec, a free ATSC A-52 stream decoder.
@@ -51,21 +51,34 @@ typedef struct {
 
 static uint8_t halfrate[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3};
 
-sample_t * a52_init (uint32_t mm_accel)
+a52_state_t * a52_init (uint32_t mm_accel)
 {
-    sample_t * samples;
+    a52_state_t * state;
     int i;
+
+    state = malloc (sizeof (a52_state_t));
+    if (state == NULL)
+	return NULL;
+
+    state->samples = memalign (16, 256 * 12 * sizeof (sample_t));
+    if (state->samples == NULL) {
+	free (state);
+	return NULL;
+    }
+
+    for (i = 0; i < 256 * 12; i++)
+	state->samples[i] = 0;
+
+    state->downmixed = 1;
 
     a52_imdct_init (mm_accel);
 
-    samples = memalign (16, 256 * 12 * sizeof (sample_t));
-    if (samples == NULL)
-	return NULL;
+    return state;
+}
 
-    for (i = 0; i < 256 * 12; i++)
-	samples[i] = 0;
-
-    return samples;
+sample_t * a52_samples (a52_state_t * state)
+{
+    return state->samples;
 }
 
 int a52_syncinfo (uint8_t * buf, int * flags,
@@ -278,11 +291,12 @@ static inline int zero_snr_offsets (int nfchans, a52_state_t * state)
 {
     int i;
 
-    if ((state->csnroffst) || (state->cplinu && state->cplba.fsnroffst) ||
-	(state->lfeon && state->lfeba.fsnroffst))
+    if ((state->csnroffst) ||
+	(state->chincpl && state->cplba.bai >> 3) ||	/* cplinu, fsnroffst */
+	(state->lfeon && state->lfeba.bai >> 3))	/* fsnroffst */
 	return 0;
     for (i = 0; i < nfchans; i++)
-	if (state->ba[i].fsnroffst)
+	if (state->ba[i].bai >> 3)			/* fsnroffst */
 	    return 0;
     return 1;
 }
@@ -299,15 +313,20 @@ static inline int16_t dither_gen (void)
     return state;
 }
 
-static void coeff_get (sample_t * coeff, uint8_t * exp, int8_t * bap,
+static void coeff_get (sample_t * coeff, expbap_t * expbap,
 		       quantizer_t * quantizer, sample_t level,
 		       int dither, int end)
 {
     int i;
+    uint8_t * exp;
+    int8_t * bap;
     sample_t factor[25];
 
     for (i = 0; i <= 24; i++)
 	factor[i] = scale_factor[i] * level;
+
+    exp = expbap->exp;
+    bap = expbap->bap;
 
     for (i = 0; i < end; i++) {
 	int bapi;
@@ -390,19 +409,23 @@ static void coeff_get_coupling (a52_state_t * state, int nfchans,
 				sample_t * coeff, sample_t (* samples)[256],
 				quantizer_t * quantizer, uint8_t dithflag[5])
 {
-    int sub_bnd, bnd, i, i_end, ch;
-    int8_t * bap;
+    int cplbndstrc, bnd, i, i_end, ch;
     uint8_t * exp;
+    int8_t * bap;
     sample_t cplco[5];
 
-    bap = state->cpl_bap;
-    exp = state->cpl_exp;
-    sub_bnd = bnd = 0;
+    exp = state->cpl_expbap.exp;
+    bap = state->cpl_expbap.bap;
+    bnd = 0;
+    cplbndstrc = state->cplbndstrc;
     i = state->cplstrtmant;
     while (i < state->cplendmant) {
 	i_end = i + 12;
-	while (state->cplbndstrc[sub_bnd++])
+	while (cplbndstrc & 1) {
+	    cplbndstrc >>= 1;
 	    i_end += 12;
+	}
+	cplbndstrc >>= 1;
 	for (ch = 0; ch < nfchans; ch++)
 	    cplco[ch] = state->cplco[ch][bnd] * coeff[ch];
 	bnd++;
@@ -416,7 +439,7 @@ static void coeff_get_coupling (a52_state_t * state, int nfchans,
 	    case 0:
 		cplcoeff = LEVEL_3DB * scale_factor[exp[i]];
 		for (ch = 0; ch < nfchans; ch++)
-		    if (state->chincpl[ch]) {
+		    if ((state->chincpl >> ch) & 1) {
 			if (dithflag[ch])
 			    samples[ch][i] = (cplcoeff * cplco[ch] *
 					      dither_gen ());
@@ -488,14 +511,14 @@ static void coeff_get_coupling (a52_state_t * state, int nfchans,
 
 	    cplcoeff *= scale_factor[exp[i]];
 	    for (ch = 0; ch < nfchans; ch++)
-		if (state->chincpl[ch])
+		if ((state->chincpl >> ch) & 1)
 		    samples[ch][i] = cplcoeff * cplco[ch];
 	    i++;
 	}
     }
 }
 
-int a52_block (a52_state_t * state, sample_t * samples)
+int a52_block (a52_state_t * state)
 {
     static const uint8_t nfchans_tbl[] = {2, 1, 2, 3, 3, 4, 4, 5, 1, 1, 2};
     static int rematrix_band[4] = {25, 37, 61, 253};
@@ -505,6 +528,7 @@ int a52_block (a52_state_t * state, sample_t * samples)
     sample_t coeff[5];
     int chanbias;
     quantizer_t quantizer;
+    sample_t * samples;
 
     nfchans = nfchans_tbl[state->acmod];
 
@@ -514,7 +538,7 @@ int a52_block (a52_state_t * state, sample_t * samples)
     for (i = 0; i < nfchans; i++)
 	dithflag[i] = bitstream_get (1);
 
-    chaninfo = !(state->acmod);
+    chaninfo = !state->acmod;
     do {
 	if (bitstream_get (1)) {	/* dynrnge */
 	    int dynrng;
@@ -533,16 +557,16 @@ int a52_block (a52_state_t * state, sample_t * samples)
     } while (chaninfo--);
 
     if (bitstream_get (1)) {	/* cplstre */
-	state->cplinu = bitstream_get (1);
-	if (state->cplinu) {
-	    static int bndtab[16] = {31, 35, 37, 39, 41, 42, 43, 44,
-				     45, 45, 46, 46, 47, 47, 48, 48};
+	state->chincpl = 0;
+	if (bitstream_get (1)) {	/* cplinu */
+	    static uint8_t bndtab[16] = {31, 35, 37, 39, 41, 42, 43, 44,
+					 45, 45, 46, 46, 47, 47, 48, 48};
 	    int cplbegf;
 	    int cplendf;
 	    int ncplsubnd;
 
 	    for (i = 0; i < nfchans; i++)
-		state->chincpl[i] = bitstream_get (1);
+		state->chincpl |= bitstream_get (1) << i;
 	    switch (state->acmod) {
 	    case 0: case 1:
 		return 1;
@@ -559,20 +583,21 @@ int a52_block (a52_state_t * state, sample_t * samples)
 	    state->cplstrtmant = cplbegf * 12 + 37;
 	    state->cplendmant = cplendf * 12 + 73;
 
-	    for (i = 0; i < ncplsubnd - 1; i++) {
-		state->cplbndstrc[i] = bitstream_get (1);
-		state->ncplbnd -= state->cplbndstrc[i];
-	    }
-	    state->cplbndstrc[i] = 0;	/* last value is a sentinel */
+	    state->cplbndstrc = 0;
+	    for (i = 0; i < ncplsubnd - 1; i++)
+		if (bitstream_get (1)) {
+		    state->cplbndstrc |= 1 << i;
+		    state->ncplbnd--;
+		}
 	}
     }
 
-    if (state->cplinu) {
+    if (state->chincpl) {	/* cplinu */
 	int j, cplcoe;
 
 	cplcoe = 0;
 	for (i = 0; i < nfchans; i++)
-	    if (state->chincpl[i])
+	    if ((state->chincpl) >> i & 1)
 		if (bitstream_get (1)) {	/* cplcoe */
 		    int mstrcplco, cplcoexp, cplcomant;
 
@@ -598,16 +623,17 @@ int a52_block (a52_state_t * state, sample_t * samples)
     if ((state->acmod == 2) && (bitstream_get (1))) {	/* rematstr */
 	int end;
 
-	end = (state->cplinu) ? state->cplstrtmant : 253;
+	state->rematflg = 0;
+	end = (state->chincpl) ? state->cplstrtmant : 253;	/* cplinu */
 	i = 0;
 	do
-	    state->rematflg[i] = bitstream_get (1);
+	    state->rematflg |= bitstream_get (1) << i;
 	while (rematrix_band[i++] < end);
     }
 
     cplexpstr = EXP_REUSE;
     lfeexpstr = EXP_REUSE;
-    if (state->cplinu)
+    if (state->chincpl)	/* cplinu */
 	cplexpstr = bitstream_get (2);
     for (i = 0; i < nfchans; i++)
 	chexpstr[i] = bitstream_get (2);
@@ -616,7 +642,7 @@ int a52_block (a52_state_t * state, sample_t * samples)
 
     for (i = 0; i < nfchans; i++)
 	if (chexpstr[i] != EXP_REUSE) {
-	    if (state->cplinu && state->chincpl[i])
+	    if ((state->chincpl >> i) & 1)
 		state->endmant[i] = state->cplstrtmant;
 	    else {
 		int chbwcod;
@@ -638,7 +664,7 @@ int a52_block (a52_state_t * state, sample_t * samples)
 		    (3 << (cplexpstr - 1)));
 	cplabsexp = bitstream_get (4) << 1;
 	if (parse_exponents (cplexpstr, ncplgrps, cplabsexp,
-			     state->cpl_exp + state->cplstrtmant))
+			     state->cpl_expbap.exp + state->cplstrtmant))
 	    return 1;
     }
     for (i = 0; i < nfchans; i++)
@@ -648,57 +674,49 @@ int a52_block (a52_state_t * state, sample_t * samples)
 	    do_bit_alloc |= 1 << i;
 	    grp_size = 3 << (chexpstr[i] - 1);
 	    nchgrps = (state->endmant[i] + grp_size - 4) / grp_size;
-	    state->fbw_exp[i][0] = bitstream_get (4);
-	    if (parse_exponents (chexpstr[i], nchgrps, state->fbw_exp[i][0],
-				 state->fbw_exp[i] + 1))
+	    state->fbw_expbap[i].exp[0] = bitstream_get (4);
+	    if (parse_exponents (chexpstr[i], nchgrps,
+				 state->fbw_expbap[i].exp[0],
+				 state->fbw_expbap[i].exp + 1))
 		return 1;
 	    bitstream_get (2);	/* gainrng */
 	}
     if (lfeexpstr != EXP_REUSE) {
 	do_bit_alloc |= 32;
-	state->lfe_exp[0] = bitstream_get (4);
-	if (parse_exponents (lfeexpstr, 2, state->lfe_exp[0],
-			     state->lfe_exp + 1))
+	state->lfe_expbap.exp[0] = bitstream_get (4);
+	if (parse_exponents (lfeexpstr, 2, state->lfe_expbap.exp[0],
+			     state->lfe_expbap.exp + 1))
 	    return 1;
     }
 
     if (bitstream_get (1)) {	/* baie */
 	do_bit_alloc = -1;
-	state->sdcycod = bitstream_get (2);
-	state->fdcycod = bitstream_get (2);
-	state->sgaincod = bitstream_get (2);
-	state->dbpbcod = bitstream_get (2);
-	state->floorcod = bitstream_get (3);
+	state->bai = bitstream_get (11);
     }
     if (bitstream_get (1)) {	/* snroffste */
 	do_bit_alloc = -1;
 	state->csnroffst = bitstream_get (6);
-	if (state->cplinu) {
-	    state->cplba.fsnroffst = bitstream_get (4);
-	    state->cplba.fgaincod = bitstream_get (3);
-	}
-	for (i = 0; i < nfchans; i++) {
-	    state->ba[i].fsnroffst = bitstream_get (4);
-	    state->ba[i].fgaincod = bitstream_get (3);
-	}
-	if (state->lfeon) {
-	    state->lfeba.fsnroffst = bitstream_get (4);
-	    state->lfeba.fgaincod = bitstream_get (3);
-	}
+	if (state->chincpl)	/* cplinu */
+	    state->cplba.bai = bitstream_get (7);
+	for (i = 0; i < nfchans; i++)
+	    state->ba[i].bai = bitstream_get (7);
+	if (state->lfeon)
+	    state->lfeba.bai = bitstream_get (7);
     }
-    if ((state->cplinu) && (bitstream_get (1))) {	/* cplleake */
+    if ((state->chincpl) && (bitstream_get (1))) {	/* cplinu, cplleake */
 	do_bit_alloc |= 64;
-	state->cplfleak = 2304 - (bitstream_get (3) << 8);
-	state->cplsleak = 2304 - (bitstream_get (3) << 8);
+	state->cplfleak = 9 - bitstream_get (3);
+	state->cplsleak = 9 - bitstream_get (3);
     }
 
     if (bitstream_get (1)) {	/* deltbaie */
 	do_bit_alloc = -1;
-	if (state->cplinu)
+	if (state->chincpl)	/* cplinu */
 	    state->cplba.deltbae = bitstream_get (2);
 	for (i = 0; i < nfchans; i++)
 	    state->ba[i].deltbae = bitstream_get (2);
-	if (state->cplinu && (state->cplba.deltbae == DELTA_BIT_NEW) &&
+	if (state->chincpl &&	/* cplinu */
+	    (state->cplba.deltbae == DELTA_BIT_NEW) &&
 	    parse_deltba (state->cplba.deltba))
 	    return 1;
 	for (i = 0; i < nfchans; i++)
@@ -709,24 +727,26 @@ int a52_block (a52_state_t * state, sample_t * samples)
 
     if (do_bit_alloc) {
 	if (zero_snr_offsets (nfchans, state)) {
-	    memset (state->cpl_bap, 0, sizeof (state->cpl_bap));
-	    memset (state->fbw_bap, 0, sizeof (state->fbw_bap));
-	    memset (state->lfe_bap, 0, sizeof (state->lfe_bap));
+	    memset (state->cpl_expbap.bap, 0, sizeof (state->cpl_expbap.bap));
+	    for (i = 0; i < nfchans; i++)
+		memset (state->fbw_expbap[i].bap, 0,
+			sizeof (state->fbw_expbap[i].bap));
+	    memset (state->lfe_expbap.bap, 0, sizeof (state->lfe_expbap.bap));
 	} else {
-	    if (state->cplinu && (do_bit_alloc & 64))
+	    if (state->chincpl && (do_bit_alloc & 64))	/* cplinu */
 		a52_bit_allocate (state, &state->cplba, state->cplstrtbnd,
 				  state->cplstrtmant, state->cplendmant,
-				  state->cplfleak, state->cplsleak,
-				  state->cpl_exp, state->cpl_bap);
+				  state->cplfleak << 8, state->cplsleak << 8,
+				  &state->cpl_expbap);
 	    for (i = 0; i < nfchans; i++)
 		if (do_bit_alloc & (1 << i))
 		    a52_bit_allocate (state, state->ba + i, 0, 0,
 				      state->endmant[i], 0, 0,
-				      state->fbw_exp[i], state->fbw_bap[i]);
+				      state->fbw_expbap +i);
 	    if (state->lfeon && (do_bit_alloc & 32)) {
 		state->lfeba.deltbae = DELTA_BIT_NONE;
 		a52_bit_allocate (state, &state->lfeba, 0, 0, 7, 0, 0,
-				  state->lfe_exp, state->lfe_bap);
+				  &state->lfe_expbap);
 	    }
 	}
     }
@@ -737,6 +757,7 @@ int a52_block (a52_state_t * state, sample_t * samples)
 	    bitstream_get (8);
     }
 
+    samples = state->samples;
     if (state->output & A52_LFE)
 	samples += 256;	/* shift for LFE channel */
 
@@ -749,10 +770,10 @@ int a52_block (a52_state_t * state, sample_t * samples)
     for (i = 0; i < nfchans; i++) {
 	int j;
 
-	coeff_get (samples + 256 * i, state->fbw_exp[i], state->fbw_bap[i],
-		   &quantizer, coeff[i], dithflag[i], state->endmant[i]);
+	coeff_get (samples + 256 * i, state->fbw_expbap +i, &quantizer,
+		   coeff[i], dithflag[i], state->endmant[i]);
 
-	if (state->cplinu && state->chincpl[i]) {
+	if ((state->chincpl >> i) & 1) {
 	    if (!done_cpl) {
 		done_cpl = 1;
 		coeff_get_coupling (state, nfchans, coeff,
@@ -768,18 +789,21 @@ int a52_block (a52_state_t * state, sample_t * samples)
     }
 
     if (state->acmod == 2) {
-	int j, end, band;
+	int j, end, band, rematflg;
 
 	end = ((state->endmant[0] < state->endmant[1]) ?
 	       state->endmant[0] : state->endmant[1]);
 
 	i = 0;
 	j = 13;
+	rematflg = state->rematflg;
 	do {
-	    if (!state->rematflg[i]) {
+	    if (! (rematflg & 1)) {
+		rematflg >>= 1;
 		j = rematrix_band[i++];
 		continue;
 	    }
+	    rematflg >>= 1;
 	    band = rematrix_band[i++];
 	    if (band > end)
 		band = end;
@@ -796,15 +820,15 @@ int a52_block (a52_state_t * state, sample_t * samples)
 
     if (state->lfeon) {
 	if (state->output & A52_LFE) {
-	    coeff_get (samples - 256, state->lfe_exp, state->lfe_bap,
-		       &quantizer, state->dynrng, 0, 7);
+	    coeff_get (samples - 256, &state->lfe_expbap, &quantizer,
+		       state->dynrng, 0, 7);
 	    for (i = 7; i < 256; i++)
 		(samples-256)[i] = 0;
 	    a52_imdct_512 (samples - 256, samples + 1536 - 256, state->bias);
 	} else {
 	    /* just skip the LFE coefficients */
-	    coeff_get (samples + 1280, state->lfe_exp, state->lfe_bap,
-		       &quantizer, 0, 0, 7);
+	    coeff_get (samples + 1280, &state->lfe_expbap, &quantizer,
+		       0, 0, 7);
 	}
     }
 
@@ -815,8 +839,8 @@ int a52_block (a52_state_t * state, sample_t * samples)
 		break;
 
     if (i < nfchans) {
-	if (samples[2 * 1536 - 1] == (sample_t)0x776b6e21) {
-	    samples[2 * 1536 - 1] = 0;
+	if (state->downmixed) {
+	    state->downmixed = 0;
 	    a52_upmix (samples + 1536, state->acmod, state->output);
 	}
 
@@ -850,10 +874,10 @@ int a52_block (a52_state_t * state, sample_t * samples)
 	a52_downmix (samples, state->acmod, state->output, 0,
 		     state->clev, state->slev);
 
-	if (samples[2 * 1536 - 1] != (sample_t)0x776b6e21) {
+	if (!state->downmixed) {
+	    state->downmixed = 1;
 	    a52_downmix (samples + 1536, state->acmod, state->output, 0,
 			 state->clev, state->slev);
-	    samples[2 * 1536 - 1] = (sample_t)0x776b6e21;
 	}
 
 	if (blksw[0])
@@ -867,4 +891,10 @@ int a52_block (a52_state_t * state, sample_t * samples)
     }
 
     return 0;
+}
+
+void a52_free (a52_state_t * state)
+{
+    free (state->samples);
+    free (state);
 }

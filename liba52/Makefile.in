@@ -80,8 +80,7 @@ CFLAGS = @CFLAGS@ @LIBA52_CFLAGS@
 
 lib_LTLIBRARIES = liba52.la
 
-liba52_la_SOURCES = bitstream.c imdct.c imdct_mlib.c bit_allocate.c parse.c 		    downmix.c
-
+liba52_la_SOURCES = bitstream.c imdct.c bit_allocate.c parse.c downmix.c
 liba52_la_LIBADD = @LIBA52_LIBS@ -lm
 liba52_la_LDFLAGS = -no-undefined
 
@@ -97,8 +96,8 @@ CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 liba52_la_DEPENDENCIES = 
-liba52_la_OBJECTS =  bitstream.lo imdct.lo imdct_mlib.lo bit_allocate.lo \
-parse.lo downmix.lo
+liba52_la_OBJECTS =  bitstream.lo imdct.lo bit_allocate.lo parse.lo \
+downmix.lo
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 LTCOMPILE = $(LIBTOOL) --mode=compile $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -248,7 +247,6 @@ downmix.lo downmix.o : downmix.c ../include/config.h ../include/a52.h \
 	a52_internal.h
 imdct.lo imdct.o : imdct.c ../include/config.h ../include/a52.h \
 	a52_internal.h ../include/mm_accel.h
-imdct_mlib.lo imdct_mlib.o : imdct_mlib.c ../include/config.h
 parse.lo parse.o : parse.c ../include/config.h ../include/a52.h \
 	a52_internal.h bitstream.h tables.h
 

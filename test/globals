@@ -13,7 +13,7 @@ srcdir=`cd $srcdir;pwd`
 builddir=`cd $builddir;pwd`
 
 bad_globals=`nm -g --defined-only $builddir/../liba52/*.o|\
-    awk '{if ($3) print $3}'|grep -v '^a52_'`
+    awk '{if ($3) print $3}'|grep -v '^_\?a52_'`
 
 if test x"$bad_globals" != x""; then
     echo BAD GLOBAL SYMBOLS:

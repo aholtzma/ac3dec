@@ -1,5 +1,5 @@
 /*
- * audio_out_wav.c
+ * audio_out_aif.c
  * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
  * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
@@ -32,25 +32,25 @@
 #include "audio_out.h"
 #include "audio_out_internal.h"
 
-typedef struct wav_instance_s {
+typedef struct aif_instance_s {
     ao_instance_t ao;
     int sample_rate;
     int set_params;
     int flags;
     int size;
-} wav_instance_t;
+} aif_instance_t;
 
-static uint8_t wav_header[] = {
-    'R', 'I', 'F', 'F', 0xfc, 0xff, 0xff, 0xff, 'W', 'A', 'V', 'E',
-    'f', 'm', 't', ' ', 16, 0, 0, 0,
-    1, 0, 2, 0, -1, -1, -1, -1, -1, -1, -1, -1, 4, 0, 16, 0,
-    'd', 'a', 't', 'a', 0xd8, 0xff, 0xff, 0xff
+static uint8_t aif_header[] = {
+    'F', 'O', 'R', 'M', 0xff, 0xff, 0xff, 0xfe, 'A', 'I', 'F', 'F',
+    'C', 'O', 'M', 'M', 0, 0, 0, 18,
+    0, 2, 0x3f, 0xff, 0xff, 0xf4, 0, 16, 0x40, 0x0e, -1, -1, 0, 0, 0, 0, 0, 0,
+    'S', 'S', 'N', 'D', 0xff, 0xff, 0xff, 0xd8, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
-int wav_setup (ao_instance_t * _instance, int sample_rate, int * flags,
-		   sample_t * level, sample_t * bias)
+int aif_setup (ao_instance_t * _instance, int sample_rate, int * flags,
+	       sample_t * level, sample_t * bias)
 {
-    wav_instance_t * instance = (wav_instance_t *) _instance;
+    aif_instance_t * instance = (aif_instance_t *) _instance;
 
     if ((instance->set_params == 0) && (instance->sample_rate != sample_rate))
 	return 1;
@@ -63,17 +63,23 @@ int wav_setup (ao_instance_t * _instance, int sample_rate, int * flags,
     return 0;
 }
 
-static void store (uint8_t * buf, int value)
+static void store4 (uint8_t * buf, int value)
 {
-    buf[0] = value;
-    buf[1] = value >> 8;
-    buf[2] = value >> 16;
-    buf[3] = value >> 24;
+    buf[0] = value >> 24;
+    buf[1] = value >> 16;
+    buf[2] = value >> 8;
+    buf[3] = value;
 }
 
-int wav_play (ao_instance_t * _instance, int flags, sample_t * _samples)
+static void store2 (uint8_t * buf, int16_t value)
 {
-    wav_instance_t * instance = (wav_instance_t *) _instance;
+    buf[0] = value >> 8;
+    buf[1] = value;
+}
+
+int aif_play (ao_instance_t * _instance, int flags, sample_t * _samples)
+{
+    aif_instance_t * instance = (aif_instance_t *) _instance;
     int16_t int16_samples[256*2];
 
 #ifdef LIBA52_DOUBLE
@@ -88,13 +94,12 @@ int wav_play (ao_instance_t * _instance, int flags, sample_t * _samples)
 
     if (instance->set_params) {
 	instance->set_params = 0;
-	store (wav_header + 24, instance->sample_rate);
-	store (wav_header + 28, instance->sample_rate * 4);
-	fwrite (wav_header, sizeof (wav_header), 1, stdout);
+	store2 (aif_header + 30, instance->sample_rate);
+	fwrite (aif_header, sizeof (aif_header), 1, stdout);
     }
 
     float2s16_2 (samples, int16_samples);
-    s16_LE (int16_samples, 2);
+    s16_BE (int16_samples, 2);
     fwrite (int16_samples, 256 * sizeof (int16_t) * 2, 1, stdout);
 
     instance->size += 256 * sizeof (int16_t) * 2;
@@ -102,29 +107,30 @@ int wav_play (ao_instance_t * _instance, int flags, sample_t * _samples)
     return 0;
 }
 
-void wav_close (ao_instance_t * _instance)
+void aif_close (ao_instance_t * _instance)
 {
-    wav_instance_t * instance = (wav_instance_t *) _instance;
+    aif_instance_t * instance = (aif_instance_t *) _instance;
 
     if (fseek (stdout, 0, SEEK_SET) < 0)
 	return;
 
-    store (wav_header + 4, instance->size + 36);
-    store (wav_header + 40, instance->size);
-    fwrite (wav_header, sizeof (wav_header), 1, stdout);
+    store4 (aif_header + 4, instance->size + 46);
+    store4 (aif_header + 22, instance->size / 4);
+    store4 (aif_header + 42, instance->size + 8);
+    fwrite (aif_header, sizeof (aif_header), 1, stdout);
 }
 
-ao_instance_t * wav_open (int flags)
+ao_instance_t * aif_open (int flags)
 {
-    wav_instance_t * instance;
+    aif_instance_t * instance;
 
-    instance = malloc (sizeof (wav_instance_t));
+    instance = malloc (sizeof (aif_instance_t));
     if (instance == NULL)
 	return NULL;
 
-    instance->ao.setup = wav_setup;
-    instance->ao.play = wav_play;
-    instance->ao.close = wav_close;
+    instance->ao.setup = aif_setup;
+    instance->ao.play = aif_play;
+    instance->ao.close = aif_close;
 
     instance->sample_rate = 0;
     instance->set_params = 1;
@@ -134,12 +140,12 @@ ao_instance_t * wav_open (int flags)
     return (ao_instance_t *) instance;
 }
 
-ao_instance_t * ao_wav_open (void)
+ao_instance_t * ao_aif_open (void)
 {
-    return wav_open (A52_STEREO);
+    return aif_open (A52_STEREO);
 }
 
-ao_instance_t * ao_wavdolby_open (void)
+ao_instance_t * ao_aifdolby_open (void)
 {
-    return wav_open (A52_DOLBY);
+    return aif_open (A52_DOLBY);
 }

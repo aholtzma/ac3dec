@@ -25,7 +25,7 @@ basedir=`cd $basedir;pwd`
 cd $builddir
 rm -fr compile_test
 
-for compiler in gcc gcc272 gcc-3.0 cc tcc; do
+for compiler in gcc gcc272 gcc-3.0 cc checkergcc tcc icc; do
     compiler_path=`which $compiler`;
     if test x"$compiler_path" = x""; then continue; fi
     compiler_inode=`ls -Li $compiler_path|awk '{print $1}'`

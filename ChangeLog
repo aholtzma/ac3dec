@@ -1,3 +1,11 @@
+a52dec-0.7.3 Wed Feb 20 23:38:22 PST 2002
+-rewrite of the imdct code, making a52dec 40% to 80% faster than version 0.7.2
+-fixed one memory corruption problem in parse.c
+-small liba52 portability fixes
+-byte order and CRLF bugfixes in wav file output
+-aif file output
+-IRIX al sound output (untested, tell us if it works)
+
 a52dec-0.7.2 Sun Dec 16 14:39:56 PST 2001
 -demuxer improvements, with support for TS streams.
 -smaller demux buffer, making it easier to use a52dec as a pipe

@@ -1,6 +1,6 @@
 /*
  * audio_out.c
- * Copyright (C) 2000-2001 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
  * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of a52dec, a free ATSC A-52 stream decoder.
@@ -35,8 +35,14 @@ extern ao_open_t ao_oss4_open;
 extern ao_open_t ao_oss6_open;
 extern ao_open_t ao_solaris_open;
 extern ao_open_t ao_solarisdolby_open;
+extern ao_open_t ao_al_open;
+extern ao_open_t ao_aldolby_open;
+extern ao_open_t ao_al4_open;
+extern ao_open_t ao_al6_open;
 extern ao_open_t ao_wav_open;
 extern ao_open_t ao_wavdolby_open;
+extern ao_open_t ao_aif_open;
+extern ao_open_t ao_aifdolby_open;
 extern ao_open_t ao_null_open;
 extern ao_open_t ao_null4_open;
 extern ao_open_t ao_null6_open;
@@ -53,8 +59,16 @@ static ao_driver_t audio_out_drivers[] = {
     {"solaris", ao_solaris_open},
     {"solarisdolby", ao_solarisdolby_open},
 #endif
+#ifdef LIBAO_AL
+    {"al", ao_al_open},
+    {"aldolby", ao_aldolby_open},
+    {"al4", ao_al4_open},
+    {"al6", ao_al6_open},
+#endif
     {"wav", ao_wav_open},
     {"wavdolby", ao_wavdolby_open},
+    {"aif", ao_aif_open},
+    {"aifdolby", ao_aifdolby_open},
     {"null", ao_null_open},
     {"null4", ao_null4_open},
     {"null6", ao_null6_open},

@@ -12,6 +12,9 @@
 /* Define if you have the <inttypes.h> header file. */
 /* #undef HAVE_INTTYPES_H */
 
+/* Define if you have the <io.h> header file. */
+#define HAVE_IO_H 1
+
 /* Define if you have the `memalign' function. */
 /* #undef HAVE_MEMALIGN */
 
@@ -42,11 +45,14 @@
 /* Define if you have the <unistd.h> header file. */
 /* #undef HAVE_UNISTD_H */
 
+/* liba52 djbfft support */
+/* #undef LIBA52_DJBFFT */
+
 /* a52 sample precision */
 /* #undef LIBA52_DOUBLE */
 
-/* liba52 mlib support */
-/* #undef LIBA52_MLIB */
+/* libao al support */
+/* #undef LIBAO_AL */
 
 /* libao OSS support */
 /* #undef LIBAO_OSS */
@@ -73,7 +79,7 @@
 #define STDC_HEADERS 1
 
 /* Version number of package */
-#define VERSION "0.7.2"
+#define VERSION "0.7.3"
 
 /* Define if your processor stores words with the most significant byte first
    (like Motorola and SPARC, unlike Intel and VAX). */

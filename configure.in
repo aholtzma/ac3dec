@@ -5,7 +5,7 @@ AC_CONFIG_SRCDIR([src/a52dec.c])
 AC_CONFIG_AUX_DIR(autotools)
 AC_CONFIG_FILES([Makefile autotools/Makefile include/Makefile test/Makefile
     doc/Makefile src/Makefile liba52/Makefile libao/Makefile vc++/Makefile])
-AM_INIT_AUTOMAKE([a52dec],[0.7.2])
+AM_INIT_AUTOMAKE([a52dec],[0.7.3])
 AM_CONFIG_HEADER(include/config.h)
 AM_MAINTAINER_MODE
 AC_CANONICAL_HOST
@@ -56,6 +56,9 @@ elif test x"$CC" = x"tcc" -a x"`$CC -version 2>&1 | grep TenDRA`" != x""; then
     enable_mlib=no
     enable_oss=no
     enable_solaris_audio=no
+elif test x"$CC" = x"icc" -a x"`$CC -V 2>&1 | grep Intel`" != x""; then
+    dnl Intel C++ compiler
+    CFLAGS="-g -O3 -unroll -ip"
 else
     dnl non-gcc flags - we probably need exact configuration triplets here.
     case "$host_alias" in
@@ -78,7 +81,7 @@ dnl Checks for libraries.
 dnl Checks for header files.
 INCLUDES='-I$(top_srcdir)/include -I$(top_builddir)/include'
 AC_SUBST([INCLUDES])
-AC_CHECK_HEADERS([sys/time.h])
+AC_CHECK_HEADERS([sys/time.h io.h])
 AC_CHECK_GENERATE_INTTYPES([include])
 
 dnl Checks for typedefs, structures, and compiler characteristics.

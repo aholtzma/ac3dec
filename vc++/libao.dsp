@@ -89,6 +89,14 @@ SOURCE=..\libao\audio_out.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\libao\audio_out_aif.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\libao\audio_out_al.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\libao\audio_out_float.c
 # End Source File
 # Begin Source File
@@ -102,6 +110,14 @@ SOURCE=..\libao\audio_out_oss.c
 # Begin Source File
 
 SOURCE=..\libao\audio_out_solaris.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\libao\audio_out_wav.c
+# End Source File
+# Begin Source File
+
+SOURCE=..\libao\float2s16.c
 # End Source File
 # End Group
 # Begin Group "Header Files"

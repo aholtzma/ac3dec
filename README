@@ -9,11 +9,9 @@ is also known as AC-3.
 
 The main goals in liba52 development are:
 
-      *	Portability - most of the code is written in C, and when we
-	use platform-specific optimizations we always have a generic C
-	routine to fall back on. We actually have very few
-	platform-specific routines for now - only mlib which is a
-	binary-only library for sun solaris.
+      *	Portability - Currently all of the code is written in C, and
+	when we write platform-specific optimizations we will always
+	keep a generic C routine to fall back on.
 
       *	Reuseability - we do not want liba52 to include any
 	project-specific code, but it should still include enough
@@ -53,7 +51,7 @@ a52dec does a stereo downmix and outputs to your speakers, but you can
 try other choices using this option. This is also used for performance
 testing and conformance testing.
 
-The "-c" option is used to disable all optimizations (currently only mlib).
+The "-c" option is used to disable all optimizations (currently only djbfft).
 
 The "-r" option is used to disable the dynamic range compression.
 
@@ -75,6 +73,9 @@ projects, including:
 
       *	ffmpeg (http://ffmpeg.sourceforge.net/) - a nice audio/video
 	encoder and transcoder, uses liba52 for decoding A/52 streams.
+
+      *	Ogle (http://www.dtek.chalmers.se/groups/dvd/) - a good DVD
+	player with menu support
 
       *	OMS (http://www.linuxvideo.org/oms/)
 
@@ -118,11 +119,13 @@ REFERENCES
 
 The A/52 standard is publically available at these locations:
 
-      *	http://www.atsc.org/standards/a_52.pdf - The main part of the
+      *	http://www.atsc.org/standards/a_52a.pdf - The main part of the
 	standard, as published by the ATSC.
 
       *	http://www.dolby.com/tech/ATSC_err.pdf - A list of erratas in
-	the ATSC standard, published by Dolby.
+	the ATSC standard, published by Dolby. It applies to the
+	previous revision of the standard (A/52 not A/52a), but some
+	erratas have not been fixed in the updated standard yet !
 
 
 CVS SNAPSHOTS

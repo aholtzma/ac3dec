@@ -77,7 +77,7 @@ STRIP = @STRIP@
 VERSION = @VERSION@
 
 noinst_LIBRARIES = libao.a
-libao_a_SOURCES = audio_out.c float2s16.c audio_out_oss.c audio_out_solaris.c 		  audio_out_wav.c audio_out_null.c audio_out_float.c
+libao_a_SOURCES = audio_out.c float2s16.c audio_out_oss.c audio_out_solaris.c 		  audio_out_wav.c audio_out_aif.c 		  audio_out_null.c audio_out_float.c
 
 
 EXTRA_DIST = configure.incl audio_out_internal.h
@@ -94,8 +94,8 @@ LIBS = @LIBS@
 libao_a_LIBADD = 
 libao_a_OBJECTS =  audio_out.$(OBJEXT) float2s16.$(OBJEXT) \
 audio_out_oss.$(OBJEXT) audio_out_solaris.$(OBJEXT) \
-audio_out_wav.$(OBJEXT) audio_out_null.$(OBJEXT) \
-audio_out_float.$(OBJEXT)
+audio_out_wav.$(OBJEXT) audio_out_aif.$(OBJEXT) \
+audio_out_null.$(OBJEXT) audio_out_float.$(OBJEXT)
 AR = ar
 CFLAGS = @CFLAGS@
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -227,6 +227,8 @@ distdir: $(DISTFILES)
 	done
 audio_out.o: audio_out.c ../include/config.h ../include/a52.h \
 	../include/audio_out.h
+audio_out_aif.o: audio_out_aif.c ../include/config.h ../include/a52.h \
+	../include/audio_out.h audio_out_internal.h
 audio_out_float.o: audio_out_float.c ../include/config.h \
 	../include/a52.h ../include/audio_out.h
 audio_out_null.o: audio_out_null.c ../include/config.h ../include/a52.h \

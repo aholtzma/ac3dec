@@ -1,6 +1,6 @@
 /*
  * a52dec.c
- * Copyright (C) 2000-2001 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
  * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of a52dec, a free ATSC A-52 stream decoder.
@@ -28,6 +28,10 @@
 #include <string.h>
 #include <errno.h>
 #include <getopt.h>
+#ifdef HAVE_IO_H
+#include <fcntl.h>
+#include <io.h>
+#endif
 #ifdef HAVE_SYS_TIME_H
 #include <sys/time.h>
 #include <signal.h>
@@ -47,7 +51,7 @@ static int disable_accel = 0;
 static int disable_dynrng = 0;
 static ao_open_t * output_open = NULL;
 static ao_instance_t * output;
-static sample_t * samples;
+static a52_state_t * state;
 
 #ifdef HAVE_SYS_TIME_H
 
@@ -213,8 +217,6 @@ static void handle_args (int argc, char ** argv)
 
 void a52_decode_data (uint8_t * start, uint8_t * end)
 {
-    static a52_state_t state;
-
     static uint8_t buf[3840];
     static uint8_t * bufptr = buf;
     static uint8_t * bufpos = buf + 7;
@@ -228,9 +230,17 @@ void a52_decode_data (uint8_t * start, uint8_t * end)
     static int sample_rate;
     static int flags;
     int bit_rate;
+    int len;
 
-    while (start < end) {
-	*bufptr++ = *start++;
+    while (1) {
+	len = end - start;
+	if (!len)
+	    break;
+	if (len > bufpos - bufptr)
+	    len = bufpos - bufptr;
+	memcpy (bufptr, start, len);
+	bufptr += len;
+	start += len;
 	if (bufptr == bufpos) {
 	    if (bufpos == buf + 7) {
 		int length;
@@ -250,14 +260,14 @@ void a52_decode_data (uint8_t * start, uint8_t * end)
 		if (ao_setup (output, sample_rate, &flags, &level, &bias))
 		    goto error;
 		flags |= A52_ADJUST_LEVEL;
-		if (a52_frame (&state, buf, &flags, &level, bias))
+		if (a52_frame (state, buf, &flags, &level, bias))
 		    goto error;
 		if (disable_dynrng)
-		    a52_dynrng (&state, NULL, NULL);
+		    a52_dynrng (state, NULL, NULL);
 		for (i = 0; i < 6; i++) {
-		    if (a52_block (&state, samples))
+		    if (a52_block (state))
 			goto error;
-		    if (ao_play (output, flags, samples))
+		    if (ao_play (output, flags, a52_samples (state)))
 			goto error;
 		}
 		bufptr = buf;
@@ -542,12 +552,16 @@ int main (int argc, char ** argv)
 {
     uint32_t accel;
 
+#ifdef HAVE_IO_H
+    setmode (fileno (stdout), O_BINARY);
+#endif
+
     fprintf (stderr, PACKAGE"-"VERSION
 	     " - by Michel Lespinasse <walken@zoy.org> and Aaron Holtzman\n");
 
     handle_args (argc, argv);
 
-    accel = disable_accel ? 0 : MM_ACCEL_MLIB;
+    accel = disable_accel ? 0 : MM_ACCEL_DJBFFT;
 
     output = ao_open (output_open);
     if (output == NULL) {
@@ -555,8 +569,8 @@ int main (int argc, char ** argv)
 	return 1;
     }
 
-    samples = a52_init (accel);
-    if (samples == NULL) {
+    state = a52_init (accel);
+    if (state == NULL) {
 	fprintf (stderr, "A52 init failed\n");
 	return 1;
     }
@@ -568,7 +582,7 @@ int main (int argc, char ** argv)
     else
 	es_loop ();
 
-    free (samples);
+    a52_free (state);
     ao_close (output);
     print_fps (1);
     return 0;

@@ -1,6 +1,6 @@
 /*
  * audio_out_solaris.c
- * Copyright (C) 2000-2001 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
  * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of a52dec, a free ATSC A-52 stream decoder.
@@ -84,10 +84,7 @@ int solaris_play (ao_instance_t * _instance, int flags, sample_t * _samples)
 	info.play.sample_rate = instance->sample_rate;
 	info.play.precision = 16;
 	info.play.channels = 2;
-	/* info.play.buffer_size = 2048; */
 	info.play.encoding = AUDIO_ENCODING_LINEAR;
-	/* info.play.port = AUDIO_SPEAKER; */
-	/* info.play.gain = 110; */
 	
 	/* Write our configuration */
 	/* An implicit GETINFO is also performed. */

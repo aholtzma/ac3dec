@@ -1,6 +1,6 @@
 /*
  * bitstream.h
- * Copyright (C) 2000-2001 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
  * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of a52dec, a free ATSC A-52 stream decoder.
@@ -28,7 +28,7 @@
 
 #else
 
-#	if defined (__i386__)
+#	if 0 && defined (__i386__)
 
 #	define swab32(x) __i386_swab32(x)
 	static inline const uint32_t __i386_swab32(uint32_t x)

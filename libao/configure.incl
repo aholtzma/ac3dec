@@ -21,3 +21,14 @@ if test x"$enable_solaris_audio" != x"no"; then
 	AC_DEFINE([LIBAO_SOLARIS],,[libao solaris support]);;
     esac
 fi
+
+dnl check for al
+AC_ARG_ENABLE([al-audio],
+    [  --disable-al-audio      make a version not using al audio])
+if test x"$enable_al" != x"no"; then
+    case "$host" in
+    *-sgi-irix*)
+	LIBAO_LIBS="$LIBAO_LIBS -laudio"
+	AC_DEFINE([LIBAO_AL],,[libao al support]);;
+    esac
+fi

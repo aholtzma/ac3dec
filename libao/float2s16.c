@@ -1,6 +1,6 @@
 /*
  * float2s16.c
- * Copyright (C) 2000-2001 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
  * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of a52dec, a free ATSC A-52 stream decoder.
@@ -74,4 +74,105 @@ void float2s16_5 (float * _f, int16_t * s16)
 	s16[5*i+3] = convert (f[i+768]);
 	s16[5*i+4] = convert (f[i+1024]);
     }
+}
+
+int channels_multi (int flags)
+{
+    if (flags & A52_LFE)
+	return 6;
+    else if (flags & 1)	/* center channel */
+	return 5;
+    else if ((flags & A52_CHANNEL_MASK) == A52_2F2R)
+	return 4;
+    else
+	return 2;
+}
+
+void float2s16_multi (float * _f, int16_t * s16, int flags)
+{
+    int i;
+    int32_t * f = (int32_t *) _f;
+
+    switch (flags) {
+    case A52_MONO:
+	for (i = 0; i < 256; i++) {
+	    s16[5*i] = s16[5*i+1] = s16[5*i+2] = s16[5*i+3] = 0;
+	    s16[5*i+4] = convert (f[i]);
+	}
+	break;
+    case A52_CHANNEL:
+    case A52_STEREO:
+    case A52_DOLBY:
+	float2s16_2 (_f, s16);
+	break;
+    case A52_3F:
+	for (i = 0; i < 256; i++) {
+	    s16[5*i] = convert (f[i]);
+	    s16[5*i+1] = convert (f[i+512]);
+	    s16[5*i+2] = s16[5*i+3] = 0;
+	    s16[5*i+4] = convert (f[i+256]);
+	}
+	break;
+    case A52_2F2R:
+	float2s16_4 (_f, s16);
+	break;
+    case A52_3F2R:
+	float2s16_5 (_f, s16);
+	break;
+    case A52_MONO | A52_LFE:
+	for (i = 0; i < 256; i++) {
+	    s16[6*i] = s16[6*i+1] = s16[6*i+2] = s16[6*i+3] = 0;
+	    s16[6*i+4] = convert (f[i+256]);
+	    s16[6*i+5] = convert (f[i]);
+	}
+	break;
+    case A52_CHANNEL | A52_LFE:
+    case A52_STEREO | A52_LFE:
+    case A52_DOLBY | A52_LFE:
+	for (i = 0; i < 256; i++) {
+	    s16[6*i] = convert (f[i+256]);
+	    s16[6*i+1] = convert (f[i+512]);
+	    s16[6*i+2] = s16[6*i+3] = s16[6*i+4] = 0;
+	    s16[6*i+5] = convert (f[i]);
+	}
+	break;
+    case A52_3F | A52_LFE:
+	for (i = 0; i < 256; i++) {
+	    s16[6*i] = convert (f[i+256]);
+	    s16[6*i+1] = convert (f[i+768]);
+	    s16[6*i+2] = s16[6*i+3] = 0;
+	    s16[6*i+4] = convert (f[i+512]);
+	    s16[6*i+5] = convert (f[i]);
+	}
+	break;
+    case A52_2F2R | A52_LFE:
+	for (i = 0; i < 256; i++) {
+	    s16[6*i] = convert (f[i+256]);
+	    s16[6*i+1] = convert (f[i+512]);
+	    s16[6*i+2] = convert (f[i+768]);
+	    s16[6*i+3] = convert (f[i+1024]);
+	    s16[6*i+4] = 0;
+	    s16[6*i+5] = convert (f[i]);
+	}
+	break;
+    case A52_3F2R | A52_LFE:
+	for (i = 0; i < 256; i++) {
+	    s16[6*i] = convert (f[i+256]);
+	    s16[6*i+1] = convert (f[i+768]);
+	    s16[6*i+2] = convert (f[i+1024]);
+	    s16[6*i+3] = convert (f[i+1280]);
+	    s16[6*i+4] = convert (f[i+512]);
+	    s16[6*i+5] = convert (f[i]);
+	}
+	break;
+    }
+}
+
+void s16_swap (int16_t * s16, int channels)
+{
+    int i;
+    uint16_t * u16 = (uint16_t *) s16;
+
+    for (i = 0; i < 256 * channels; i++)
+	u16[i] = (u16[i] >> 8) | (u16[i] << 8);
 }

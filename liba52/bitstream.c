@@ -1,6 +1,6 @@
 /*
  * bitstream.c
- * Copyright (C) 2000-2001 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 2000-2002 Michel Lespinasse <walken@zoy.org>
  * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of a52dec, a free ATSC A-52 stream decoder.
@@ -40,7 +40,7 @@ void a52_bitstream_set_ptr (uint8_t * buf)
 {
     int align;
 
-    align = (int)buf & 3;
+    align = (long)buf & 3;
     buffer_start = (uint32_t *) (buf - align);
     a52_bits_left = 0;
     bitstream_get (align * 8);

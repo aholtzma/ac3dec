@@ -156,7 +156,8 @@ int main(int argc,char *argv[])
 		if(bitstream_done(bs))
 			break;
 	}
-	
+
+	printf("End of stream\n");
 	bitstream_close(bs);
 	output_close();
 	return 0;

@@ -409,7 +409,6 @@ parse_audblk(bsi_t *bsi,audblk_t *audblk,bitstream_t *bs)
 		for(i=0;i< audblk->ncplgrps;i++)
 			audblk->cplexps[i] = bitstream_get(bs,7);
 	}
-		decode_sanity_check();
 
 	/* Get the fwb channel exponents */
 	for(i=0;i < bsi->nfchans; i++)

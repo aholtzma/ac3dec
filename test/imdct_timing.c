@@ -26,6 +26,6 @@ void main(int argc,char *argv[])
 	imdct_init();
 	timing_init();
 
-	timing_test_2(imdct_do_512,i_buf,o_buf,"imdct_do");
-	timing_test_2(imdct_do_256,i_buf,o_buf,"imdct_do");
+	timing_test_2(imdct_do_512,i_buf,o_buf,"imdct_do_512");
+	timing_test_2(imdct_do_256,i_buf,o_buf,"imdct_do_256");
 }

@@ -72,9 +72,11 @@ AUTOMAKE_OPTIONS = 1.3 foreign
 
 CFLAGS = -Wall -Werror -O3 -g 
 
-bin_PROGRAMS = extract_ac3
+bin_PROGRAMS = extract_ac3 verify_ac3
 
 extract_ac3_SOURCES = extract_ac3.c
+verify_ac3_SOURCES = verify_ac3.c
+verify_ac3_LDADD = ../parse.o ../bitstream.o ../crc.o ../debug.o ../stats.o
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = ../config.h
 CONFIG_CLEAN_FILES = 
@@ -89,6 +91,10 @@ extract_ac3_OBJECTS =  extract_ac3.o
 extract_ac3_LDADD = $(LDADD)
 extract_ac3_DEPENDENCIES = 
 extract_ac3_LDFLAGS = 
+verify_ac3_OBJECTS =  verify_ac3.o
+verify_ac3_DEPENDENCIES =  ../parse.o ../bitstream.o ../crc.o ../debug.o \
+../stats.o
+verify_ac3_LDFLAGS = 
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
 LINK = $(CCLD) $(AM_CFLAGS) $(CFLAGS) $(LDFLAGS) -o $@
@@ -99,8 +105,8 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
 TAR = tar
 GZIP_ENV = --best
-SOURCES = $(extract_ac3_SOURCES)
-OBJECTS = $(extract_ac3_OBJECTS)
+SOURCES = $(extract_ac3_SOURCES) $(verify_ac3_SOURCES)
+OBJECTS = $(extract_ac3_OBJECTS) $(verify_ac3_OBJECTS)
 
 all: all-redirect
 .SUFFIXES:
@@ -161,6 +167,10 @@ extract_ac3: $(extract_ac3_OBJECTS) $(extract_ac3_DEPENDENCIES)
 	@rm -f extract_ac3
 	$(LINK) $(extract_ac3_LDFLAGS) $(extract_ac3_OBJECTS) $(extract_ac3_LDADD) $(LIBS)
 
+verify_ac3: $(verify_ac3_OBJECTS) $(verify_ac3_DEPENDENCIES)
+	@rm -f verify_ac3
+	$(LINK) $(verify_ac3_LDFLAGS) $(verify_ac3_OBJECTS) $(verify_ac3_LDADD) $(LIBS)
+
 tags: TAGS
 
 ID: $(HEADERS) $(SOURCES) $(LISP)
@@ -205,6 +215,9 @@ distdir: $(DISTFILES)
 	    || cp -p $$d/$$file $(distdir)/$$file || :; \
 	  fi; \
 	done
+extract_ac3.o: extract_ac3.c
+verify_ac3.o: verify_ac3.c ../config.h ../ac3.h ../decode.h \
+	../bitstream.h ../parse.h ../crc.h ../debug.h
 
 info-am:
 info: info-am

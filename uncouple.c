@@ -74,7 +74,7 @@ uncouple_channel(stream_coeffs_t *coeffs,audblk_t *audblk, uint_32 ch)
 			if(audblk->cplcoexp[ch][bnd] == 15)
 				cpl_mant_tmp = (audblk->cplcomant[ch][bnd]) << 12;
 			else
-				cpl_mant_tmp = ((0x10) & audblk->cplcomant[ch][bnd]) << 11;
+				cpl_mant_tmp = ((0x10) | audblk->cplcomant[ch][bnd]) << 11;
 			
 			convert_to_float(cpl_exp_tmp,cpl_mant_tmp,(uint_32*)&cpl_coord);
 		}

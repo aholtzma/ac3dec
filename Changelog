@@ -10,3 +10,10 @@ ac3dec-0.5.2  Sun Jul  4 12:00:25 PDT 1999
 ac3dec-0.5.3  Mon Jul 12 10:45:56 PDT 1999
 -Fixed problems related to streams with coupling channel enabled.
 -Minor performance enhancements
+
+ac3dec-0.5.4 Thu Jul 29 16:55:10 PDT 1999
+-Fixed a stupid bug with the coupling channel that was causing
+ high frequencies to be attenuated.
+-Re-wrote the extract_ac3 tool.
+-Added to a tool to verify the checksums on a given AC3 stream. 
+ (tools/verify_ac3)

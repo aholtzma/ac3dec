@@ -22,12 +22,10 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
-#define dump_current(a) \
-	fprintf(stderr, "%9d: %02x %02x %02x %02x %02x %02x %02x %02x\n", \
-		a - mpeg_data, a[0], a[1], a[2], a[3], a[4], a[5], a[6], a[7]);
 
 static unsigned char *mpeg_data = 0;
 static unsigned char *mpeg_data_end = 0;
+static unsigned char *cur_pos;
 
 int map_file(char file_name[])
 {
@@ -55,59 +53,106 @@ int map_file(char file_name[])
 		exit(1);
 	}
 
+	cur_pos = mpeg_data;
 	mpeg_data_end = mpeg_data + mpeg_data_size;
 
 	return f;
 }
 
-
-void strip_ac3(void)
+inline void increment_position(long x)
 {
-	int pes_bytes;
-	int header_bytes;
-	unsigned char *cur_pos;
-	 
-	cur_pos = mpeg_data;
+	cur_pos += x;
 
-	if (!(cur_pos[0] == 0    && cur_pos[1] == 0 && cur_pos[2] == 1 &&
-		    cur_pos[3] == 0xba && (cur_pos[4] & 0xc0) == 0x40)) 
+	if(cur_pos >= mpeg_data_end)
 	{
-		fprintf(stderr, "Non-program streams not handled - exiting\n\n");
+		fprintf(stderr, "Error: unexpected end of stream\n");
 		exit(1);
 	}
 
-	while (cur_pos < mpeg_data_end) 
+}
+
+inline int next_24_bits(long x)
+{
+	if (cur_pos[0] != ((x >> 16) & 0xff))
+		return 0;
+	if (cur_pos[1] != ((x >>  8) & 0xff))
+		return 0;
+	if (cur_pos[2] != ((x      ) & 0xff))
+		return 0;
+
+	return 1;
+}
+
+inline int next_32_bits(long x)
+{
+	if (cur_pos[0] != ((x >> 24) & 0xff))
+		return 0;
+	if (cur_pos[1] != ((x >> 16) & 0xff))
+		return 0;
+	if (cur_pos[2] != ((x >>  8) & 0xff))
+		return 0;
+	if (cur_pos[3] != ((x      ) & 0xff))
+		return 0;
+
+	return 1;
+}
+
+void parse_pes(void)
+{
+	unsigned long data_length;
+	unsigned long header_length;
+
+
+	//The header length is the PES_header_data_length byte plus 6 for the packet
+	//start code and packet size, 3 for the PES_header_data_length and two
+	//misc bytes, and finally 4 bytes for the mystery AC3 packet tag 
+	header_length = cur_pos[8] + 6 + 3 + 4 ;
+	data_length =(cur_pos[4]<<8) + cur_pos[5];
+
+
+	//If we have AC-3 audio then output it
+	if(cur_pos[3] == 0xbd)
 	{
-		/* Search for the next AC-3 block */
-		while (!(cur_pos[0] == 0 && cur_pos[1] == 0 && cur_pos[2] == 1 && cur_pos[3] == 0xbd) &&
-			cur_pos < mpeg_data_end)
-			cur_pos++;
+		//Debuggin printfs
+		//fprintf(stderr,"start of pes curpos[] = %02x%02x%02x%02x\n",
+		//	cur_pos[0],cur_pos[1],cur_pos[2],cur_pos[3]);
+		//fprintf(stderr,"header_length = %d data_length = %x\n",
+		//	header_length, data_length);
+		//fprintf(stderr,"extra crap 0x%02x%02x%02x%02x data size 0x%0lx\n",cur_pos[header_length-4],
+		//	cur_pos[header_length-3],cur_pos[header_length-2],cur_pos[header_length-1],data_length);
 
-		if (cur_pos >= mpeg_data_end)
-			break;
-
-		pes_bytes = (cur_pos[4]<<8) + cur_pos[5] + 6;
-
-		if(pes_bytes > 2200)
-		{
-			//FIXME if we have a really large pes size, then
-			//we've probably just encounter some video that looks like
-			//AC-3, so skip it.
-			//
-			//We really should parse all types of pes to avoid this problem
-			cur_pos++;
-			continue;
-		}
-		header_bytes = cur_pos[8] + 13;
-		cur_pos += header_bytes;
-
-		//fprintf(stderr,"Wrote 1 AC-3 frame of length %d\n",
-		//		pes_bytes - header_bytes);
-		fwrite(cur_pos,1,pes_bytes - header_bytes,stdout);
-		
-		cur_pos += pes_bytes - header_bytes;
+		//Make sure it isn't a strange 0x2xxx xxxx packet
+		if((cur_pos[header_length-4] & 0x80 ))
+			fwrite(&cur_pos[header_length],1,data_length - (header_length - 6),stdout);
 	}
-	return;
+
+	//The packet size is data_length plus 6 bytes to account for the
+	//packet start code and the data_length itself.
+	increment_position(data_length + 6);
+}
+
+void parse_pack(void)
+{
+	unsigned long skip_length;
+
+	/* Deal with the pack header */
+	/* The first 13 bytes are junk. The fourteenth byte 
+	 * contains the number of stuff bytes */
+	skip_length = cur_pos[13] & 0x7;
+	increment_position(14 + skip_length);
+
+	/* Deal with the system header if it exists */
+	if(next_32_bits(0x000001bb))
+	{
+		/* Bytes 5 and 6 contain the length of the header minus 6 */
+		skip_length = (cur_pos[4] << 8) +  cur_pos[5];
+		increment_position(6 + skip_length);
+	}
+
+	while(next_24_bits(0x000001) && !next_32_bits(0x000001ba))
+	{
+		parse_pes();
+	}
 }
 
 int main(int argc, char *argv[])
@@ -120,8 +165,27 @@ int main(int argc, char *argv[])
 	}
 
 	f = map_file(argv[1]);
-	strip_ac3();
-	close(f);
 
+	if(!next_32_bits(0x000001ba))
+	{
+		fprintf(stderr, "Non-program streams not handled - exiting\n\n");
+		exit(1);
+	}
+
+	do
+	{
+		parse_pack();
+	} 
+	while(next_32_bits(0x000001ba));
+
+	fprintf(stderr,"curpos[] = %x%x%x%x\n",cur_pos[0],cur_pos[1],cur_pos[2],cur_pos[3]);
+
+	if(!next_32_bits(0x000001b9))
+	{
+		fprintf(stderr, "Error: expected end of stream code\n");
+		exit(1);
+	}
+
+	close(f);
 	return 0;
 }		

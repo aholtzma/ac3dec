@@ -1,0 +1,7 @@
+- Detect the end of file and exit
+- Add proper error detection.
+- Mute frame on error.
+- Use proper frame sizes in auxdata parsing
+- Separate uint_* typedefs from ac3.h
+- Fix coupling channel support
+- Add delta bit allocation support

@@ -1,0 +1,24 @@
+dnl Autoconf configuration script ac3dec
+dnl 
+dnl Aaron Holtzman - May 1999
+dnl
+AC_INIT(decode.c)
+AC_CANONICAL_HOST
+AC_PREREQ(2.13)
+AM_CONFIG_HEADER(config.h)
+AM_INIT_AUTOMAKE(ac3dec, 0.5.0)
+
+AM_MAINTAINER_MODE
+AC_PROG_CC
+AC_PROG_GCC_TRADITIONAL
+AC_PROG_RANLIB
+
+dnl Figure out which OS we're on and what to do about it
+case "$host" in
+*-linux*) rm -f output.c; ln -s output_linux.c output.c;;
+*-solaris*) rm -f output.c; ln -s output_solaris.c output.c;;
+*) echo "$host is not currently supported by ac3dec"; exit 1;;
+esac
+
+
+AC_OUTPUT(tools/Makefile test/Makefile Makefile ) 

@@ -1,0 +1,11 @@
+a52dec-0.7.0 Thu Aug 23 23:18:00 PDT 2001 
+
+First release since more than one year !
+
+The most user-noticeable additions are the downmix to arbitrary
+speaker configurations, and the implementation of dynamic range
+compression.
+
+The speed has been improved by a factor of 2 to 3, the conformance and
+precision should be higher, and we also fixed a small bug when playing
+stereo rematrixed streams.

@@ -1,3 +1,26 @@
+* get rid of globals in bitstream parsing
+* get rid of statics in parse.c : q_1, q_1_pointer, etc
+* more statics in imdct.c ....
+* avoid overflows, including reading the a52 stream !!!
+* make dither code faster (generate dither table in advance ?)
+* redo all bit allocation if previous frame had zero_snr_offsets
+* make dynrng work in dual-channel streams
+
+* finish a52_internal.h cleanup
+	* use sensible data types
+	* move some arrays into bit fields
+* imdct.c
+	* maybe use a single w[] array with only positive values
+	* use split-radix algorithm
+* cplfleak/cplsleak: move 2304-x in bit_allocate.c ?
+
+* see if we can get rid of cplcoe in the phsflginu test
+
+* update bitstream code
+
+
+from aaron:
+
 - Detect hrtime on solaris and enable it via config.h
 - Add multilevel debug output
 - change the divides/moduluos in coeff_get_mantissa to table

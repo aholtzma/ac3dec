@@ -1,36 +1,95 @@
-dnl Autoconf configuration script ac3dec
-dnl 
-dnl Aaron Holtzman - May 1999
-dnl
-AC_INIT(ac3dec.c)
-AM_CONFIG_HEADER(config.h)
-AC_CANONICAL_HOST
+dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.13)
-AM_INIT_AUTOMAKE(ac3dec, 0.6.1)
-
+AC_INIT(src/a52dec.c)
+AC_CONFIG_AUX_DIR(autotools)
+AM_INIT_AUTOMAKE(a52dec, 0.7.0)
+AM_CONFIG_HEADER(include/config.h)
 AM_MAINTAINER_MODE
+AC_CANONICAL_HOST
+
+dnl Checks for compiler
 AC_PROG_CC
 AC_PROG_GCC_TRADITIONAL
-AC_PROG_RANLIB
 
-AC_CHECK_LIB(ossaudio, _oss_ioctl, LIBS="$LIBS -lossaudio")
+dnl GCC-specific flags - try to optimize them sometime
+if test x"$GCC" = x"yes"; then
 
-dnl Figure out which OS we're on and what to do about it
-case "$host" in
-*-linux*) rm -f output.c; ln -s output_linux.c output.c;;
-*-openbsd*|*-freebsd*) rm -f output.c; ln -s output_linux.c output.c;;
-*-irix*) rm -f output.c; ln -s output_irix.c output.c;;
-*-solaris*) rm -f output.c; ln -s output_solaris.c output.c;;
-*) echo "$host is not currently supported by ac3dec"; exit 1;;
-esac
+    dnl -Wall -Werror moved to the end to not disturb the configure script
 
-dnl Set the appropriate architecture define
-case "$host" in
-i?86-*) AC_DEFINE(__i386__);;
-alpha*-*) AC_DEFINE(__alpha__);;
-sparc-*) AC_DEFINE(__sparc__);;
-ppc-*) AC_DEFINE(__ppc__);;
-*) echo "$host is not currently supported by ac3dec"; exit 1;;
-esac
+    dnl -O3
+    changequote(<<,>>)
+    OPT_CFLAGS=`echo "$CFLAGS"|sed "s/-O[0-9]*//g;"`
+    changequote([,])
+    OPT_CFLAGS="$OPT_CFLAGS -O3"
+    AC_TRY_CFLAGS([$OPT_CFLAGS],[CFLAGS=$OPT_CFLAGS])
 
-AC_OUTPUT(libac3/Makefile tools/Makefile test/Makefile Makefile ) 
+    dnl -fomit-frame-pointer
+    OPT_CFLAGS="$CFLAGS -fomit-frame-pointer"
+    AC_TRY_CFLAGS([$OPT_CFLAGS],[CFLAGS=$OPT_CFLAGS])
+
+    dnl arch-specific flags
+    case "$host_alias" in
+    i?86-* | k?-*)
+	case "$host_alias" in
+	i386-*) OPT_CFLAGS="$CFLAGS -mcpu=i386";;
+	i486-*) OPT_CFLAGS="$CFLAGS -mcpu=i486";;
+	i586-*) OPT_CFLAGS="$CFLAGS -mcpu=pentium";;
+	i686-*) OPT_CFLAGS="$CFLAGS -mcpu=pentiumpro";;
+	k6-*)   OPT_CFLAGS="$CFLAGS -mcpu=k6";;
+	esac
+	AC_TRY_CFLAGS([$OPT_CFLAGS],[CFLAGS=$OPT_CFLAGS]);;
+    sparc-*)
+	OPT_CFLAGS="$CFLAGS -mcpu=ultrasparc -mvis"
+	AC_TRY_CFLAGS([$OPT_CFLAGS],[CFLAGS=$OPT_CFLAGS]);;
+    mips-sgi-irix6.*)	dnl do we need to be that specific ?
+	OPT_CFLAGS="$CFLAGS -mabi=64"
+	AC_TRY_CFLAGS([$OPT_CFLAGS],[CFLAGS=$OPT_CFLAGS]);;
+    esac
+else
+    dnl non-gcc flags - we probably need exact configuration triplets here.
+    case "$host_alias" in
+    mips-sgi-irix6.*)
+	OPT_CFLAGS="$CFLAGS -64"
+	AC_TRY_CFLAGS([$OPT_CFLAGS],[CFLAGS=$OPT_CFLAGS]);;
+    sparc-sun-solaris*)
+	OPT_CFLAGS="$CFLAGS -xCC -fast -xO5"
+	AC_TRY_CFLAGS([$OPT_CFLAGS],[CFLAGS=$OPT_CFLAGS]);;
+    esac
+fi
+
+dnl Checks for libtool - this must be done after we set cflags
+AM_DISABLE_SHARED
+AC_LIBTOOL_WIN32_DLL
+AM_PROG_LIBTOOL
+
+dnl Checks for libraries.
+
+dnl Checks for header files.
+INCLUDES='-I$(top_srcdir)/include -I$(top_builddir)/include'
+AC_SUBST(INCLUDES)
+AC_CHECK_GENERATE_INTTYPES(include)
+
+dnl Checks for typedefs, structures, and compiler characteristics.
+AC_C_CONST
+AC_C_INLINE
+AC_C_BIGENDIAN
+
+dnl Checks for library functions.
+AC_CHECK_FUNCS([memalign])
+AC_TYPE_SIGNAL
+
+builtin([include],[liba52/configure.incl])
+builtin([include],[libao/configure.incl])
+builtin([include],[src/configure.incl])
+
+AC_ARG_ENABLE([warnings],
+    [  --disable-warnings      do not treat warnings as errors])
+if test x"$enable_warnings" != x"no" -a x"$GCC" = x"yes"; then
+    dnl compiler warnings
+    OPT_CFLAGS="$CFLAGS -Wall -Werror"
+    AC_TRY_CFLAGS([$OPT_CFLAGS],[CFLAGS=$OPT_CFLAGS])
+fi
+
+AC_C_ATTRIBUTE_ALIGNED
+
+AC_OUTPUT(Makefile autotools/Makefile include/Makefile test/Makefile doc/Makefile src/Makefile liba52/Makefile libao/Makefile)

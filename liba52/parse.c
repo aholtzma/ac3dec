@@ -22,6 +22,7 @@
 #include "config.h"
 
 #include <inttypes.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "a52.h"
@@ -36,6 +37,17 @@ void * memalign (size_t align, size_t size);
 /* assume malloc alignment is sufficient */
 #define memalign(align,size) malloc (size)
 #endif
+
+typedef struct {
+    sample_t q1[2];
+    sample_t q2[2];
+    sample_t q4;
+    int q1_ptr;
+    int q2_ptr;
+    int q4_ptr;
+} quantizer_t;
+
+static uint8_t halfrate[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3};
 
 sample_t * a52_init (uint32_t mm_accel)
 {
@@ -53,8 +65,6 @@ sample_t * a52_init (uint32_t mm_accel)
 
     return samples;
 }
-
-static uint8_t halfrate[12] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3};
 
 int a52_syncinfo (uint8_t * buf, int * flags,
 		  int * sample_rate, int * bit_rate)
@@ -272,17 +282,9 @@ static inline int zero_snr_offsets (int nfchans, a52_state_t * state)
     return 1;
 }
 
-static sample_t q_1[2];
-static sample_t q_2[2];
-static sample_t q_4;
-static int q_1_pointer;
-static int q_2_pointer;
-static int q_4_pointer;
-
-static uint16_t lfsr_state = 1;
-
 static inline int16_t dither_gen (void)
 {
+    static uint16_t lfsr_state = 1;
     int16_t state;
 
     state = dither_lut[lfsr_state >> 8] ^ (lfsr_state << 8);
@@ -293,7 +295,8 @@ static inline int16_t dither_gen (void)
 }
 
 static void coeff_get (sample_t * coeff, uint8_t * exp, int8_t * bap,
-		       sample_t level, int dither, int end)
+		       quantizer_t * quantizer, sample_t level,
+		       int dither, int end)
 {
     int i;
     sample_t factor[25];
@@ -301,87 +304,86 @@ static void coeff_get (sample_t * coeff, uint8_t * exp, int8_t * bap,
     for (i = 0; i <= 24; i++)
 	factor[i] = scale_factor[i] * level;
 
-    i = 0;
-    while (i < end) {
+    for (i = 0; i < end; i++) {
 	int bapi;
 
 	bapi = bap[i];
 	switch (bapi) {
 	case 0:
 	    if (dither) {
-		coeff[i++] = dither_gen() * LEVEL_3DB * factor[exp[i]];
+		coeff[i] = dither_gen() * LEVEL_3DB * factor[exp[i]];
 		continue;
 	    } else {
-		coeff[i++] = 0;
+		coeff[i] = 0;
 		continue;
 	    }
 
 	case -1:
-	    if (q_1_pointer >= 0) {
-		coeff[i++] = q_1[q_1_pointer--] * factor[exp[i]];
+	    if (quantizer->q1_ptr >= 0) {
+		coeff[i] = quantizer->q1[quantizer->q1_ptr--] * factor[exp[i]];
 		continue;
 	    } else {
 		int code;
 
 		code = bitstream_get (5);
 
-		q_1_pointer = 1;
-		q_1[0] = q_1_2[code];
-		q_1[1] = q_1_1[code];
-		coeff[i++] = q_1_0[code] * factor[exp[i]];
+		quantizer->q1_ptr = 1;
+		quantizer->q1[0] = q_1_2[code];
+		quantizer->q1[1] = q_1_1[code];
+		coeff[i] = q_1_0[code] * factor[exp[i]];
 		continue;
 	    }
 
 	case -2:
-	    if (q_2_pointer >= 0) {
-		coeff[i++] = q_2[q_2_pointer--] * factor[exp[i]];
+	    if (quantizer->q2_ptr >= 0) {
+		coeff[i] = quantizer->q2[quantizer->q2_ptr--] * factor[exp[i]];
 		continue;
 	    } else {
 		int code;
 
 		code = bitstream_get (7);
 
-		q_2_pointer = 1;
-		q_2[0] = q_2_2[code];
-		q_2[1] = q_2_1[code];
-		coeff[i++] = q_2_0[code] * factor[exp[i]];
+		quantizer->q2_ptr = 1;
+		quantizer->q2[0] = q_2_2[code];
+		quantizer->q2[1] = q_2_1[code];
+		coeff[i] = q_2_0[code] * factor[exp[i]];
 		continue;
 	    }
 
 	case 3:
-	    coeff[i++] = q_3[bitstream_get (3)] * factor[exp[i]];
+	    coeff[i] = q_3[bitstream_get (3)] * factor[exp[i]];
 	    continue;
 
 	case -3:
-	    if (q_4_pointer == 0) {
-		q_4_pointer = -1;
-		coeff[i++] = q_4 * factor[exp[i]];
+	    if (quantizer->q4_ptr == 0) {
+		quantizer->q4_ptr = -1;
+		coeff[i] = quantizer->q4 * factor[exp[i]];
 		continue;
 	    } else {
 		int code;
 
 		code = bitstream_get (7);
 
-		q_4_pointer = 0;
-		q_4 = q_4_1[code];
-		coeff[i++] = q_4_0[code] * factor[exp[i]];
+		quantizer->q4_ptr = 0;
+		quantizer->q4 = q_4_1[code];
+		coeff[i] = q_4_0[code] * factor[exp[i]];
 		continue;
 	    }
 
 	case 4:
-	    coeff[i++] = q_5[bitstream_get (4)] * factor[exp[i]];
+	    coeff[i] = q_5[bitstream_get (4)] * factor[exp[i]];
 	    continue;
 
 	default:
-	    coeff[i++] = ((bitstream_get_2 (bapi) << (16 - bapi)) *
+	    coeff[i] = ((bitstream_get_2 (bapi) << (16 - bapi)) *
 			  factor[exp[i]]);
 	}
     }
 }
 
 static void coeff_get_coupling (a52_state_t * state, int nfchans,
-				sample_t * coeff,
-				sample_t (* samples)[256], uint8_t dithflag[5])
+				sample_t * coeff, sample_t (* samples)[256],
+				quantizer_t * quantizer, uint8_t dithflag[5])
 {
     int sub_bnd, bnd, i, i_end, ch;
     int8_t * bap;
@@ -420,33 +422,33 @@ static void coeff_get_coupling (a52_state_t * state, int nfchans,
 		continue;
 
 	    case -1:
-		if (q_1_pointer >= 0) {
-		    cplcoeff = q_1[q_1_pointer--];
+		if (quantizer->q1_ptr >= 0) {
+		    cplcoeff = quantizer->q1[quantizer->q1_ptr--];
 		    break;
 		} else {
 		    int code;
 
 		    code = bitstream_get (5);
 
-		    q_1_pointer = 1;
-		    q_1[0] = q_1_2[code];
-		    q_1[1] = q_1_1[code];
+		    quantizer->q1_ptr = 1;
+		    quantizer->q1[0] = q_1_2[code];
+		    quantizer->q1[1] = q_1_1[code];
 		    cplcoeff = q_1_0[code];
 		    break;
 		}
 
 	    case -2:
-		if (q_2_pointer >= 0) {
-		    cplcoeff = q_2[q_2_pointer--];
+		if (quantizer->q2_ptr >= 0) {
+		    cplcoeff = quantizer->q2[quantizer->q2_ptr--];
 		    break;
 		} else {
 		    int code;
 
 		    code = bitstream_get (7);
 
-		    q_2_pointer = 1;
-		    q_2[0] = q_2_2[code];
-		    q_2[1] = q_2_1[code];
+		    quantizer->q2_ptr = 1;
+		    quantizer->q2[0] = q_2_2[code];
+		    quantizer->q2[1] = q_2_1[code];
 		    cplcoeff = q_2_0[code];
 		    break;
 		}
@@ -456,17 +458,17 @@ static void coeff_get_coupling (a52_state_t * state, int nfchans,
 		break;
 
 	    case -3:
-		if (q_4_pointer == 0) {
-		    q_4_pointer = -1;
-		    cplcoeff = q_4;
+		if (quantizer->q4_ptr == 0) {
+		    quantizer->q4_ptr = -1;
+		    cplcoeff = quantizer->q4;
 		    break;
 		} else {
 		    int code;
 
 		    code = bitstream_get (7);
 
-		    q_4_pointer = 0;
-		    q_4 = q_4_1[code];
+		    quantizer->q4_ptr = 0;
+		    quantizer->q4 = q_4_1[code];
 		    cplcoeff = q_4_0[code];
 		    break;
 		}
@@ -497,6 +499,7 @@ int a52_block (a52_state_t * state, sample_t * samples)
     uint8_t blksw[5], dithflag[5];
     sample_t coeff[5];
     int chanbias;
+    quantizer_t quantizer;
 
     nfchans = nfchans_tbl[state->acmod];
 
@@ -735,20 +738,21 @@ int a52_block (a52_state_t * state, sample_t * samples)
     chanbias = downmix_coeff (coeff, state->acmod, state->output,
 			      state->dynrng, state->clev, state->slev);
 
-    q_1_pointer = q_2_pointer = q_4_pointer = -1;
+    quantizer.q1_ptr = quantizer.q2_ptr = quantizer.q4_ptr = -1;
     done_cpl = 0;
 
     for (i = 0; i < nfchans; i++) {
 	int j;
 
 	coeff_get (samples + 256 * i, state->fbw_exp[i], state->fbw_bap[i],
-		   coeff[i], dithflag[i], state->endmant[i]);
+		   &quantizer, coeff[i], dithflag[i], state->endmant[i]);
 
 	if (state->cplinu && state->chincpl[i]) {
 	    if (!done_cpl) {
 		done_cpl = 1;
 		coeff_get_coupling (state, nfchans, coeff,
-				    (sample_t (*)[256])samples, dithflag);
+				    (sample_t (*)[256])samples, &quantizer,
+				    dithflag);
 	    }
 	    j = state->cplendmant;
 	} else
@@ -788,14 +792,14 @@ int a52_block (a52_state_t * state, sample_t * samples)
     if (state->lfeon) {
 	if (state->output & A52_LFE) {
 	    coeff_get (samples - 256, state->lfe_exp, state->lfe_bap,
-		       state->dynrng, 0, 7);
+		       &quantizer, state->dynrng, 0, 7);
 	    for (i = 7; i < 256; i++)
 		(samples-256)[i] = 0;
 	    imdct_512 (samples - 256, samples + 1536 - 256, state->bias);
 	} else {
 	    /* just skip the LFE coefficients */
 	    coeff_get (samples + 1280, state->lfe_exp, state->lfe_bap,
-		       0, 0, 7);
+		       &quantizer, 0, 0, 7);
 	}
     }
 

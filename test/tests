@@ -6,5 +6,5 @@ blade_runner
 ac3test		#OK - 5-channel test stream
 arm		#OK - produced glitches in oms
 egypt		#OK - dolby digital "egypt" trailer
-thx		#OK - thx chord
+thx		#OK - thx chord - that one never uses split imdct !
 zorro		#OK - likely to overdrive output if not properly downmixed

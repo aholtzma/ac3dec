@@ -24,6 +24,7 @@
 #ifdef LIBA52_MLIB
 
 #include <inttypes.h>
+#include <string.h>
 #include <mlib_types.h>
 #include <mlib_status.h>
 #include <mlib_signal.h>
@@ -94,12 +95,12 @@ imdct_do_256_mlib(sample_t data[], sample_t delay[], sample_t bias)
 	int i;
 	
 	memcpy(tmp, data, 256 * sizeof(sample_t));
-	mlib_SignalIMDCT_F32(tmp);
+	mlib_SignalIMDCTSplit_F32(tmp);
   
 	buf1_real = tmp;
-	buf1_imag = tmp + 64;
-	buf2_real = tmp + 128;
-	buf2_imag = tmp + 128 + 64;
+	buf1_imag = tmp + 128 + 64;
+	buf2_real = tmp + 64;
+	buf2_imag = tmp + 128;
 	data_ptr = data;
 	delay_ptr = delay;
 	window_ptr = imdct_window;

@@ -5,4 +5,6 @@ a52dec_SOURCES = a52dec.c getopt.c
 a52dec_LDADD = $(top_builddir)/liba52/liba52.la $(top_builddir)/libao/libao.la
 extract_a52_SOURCES = extract_a52.c getopt.c
 
-EXTRA_DIST = configure.incl getopt.h
+man_MANS = a52dec.1 extract_a52.1
+
+EXTRA_DIST = configure.incl getopt.h $(man_MANS)

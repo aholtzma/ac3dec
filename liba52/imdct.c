@@ -23,9 +23,11 @@
 
 #include <inttypes.h>
 #include <math.h>
+#include <stdio.h>
 
 #include "a52.h"
 #include "a52_internal.h"
+#include "mm_accel.h"
 
 void (* imdct_256) (sample_t data[], sample_t delay[], sample_t bias);
 void (* imdct_512) (sample_t data[], sample_t delay[], sample_t bias);
@@ -369,12 +371,15 @@ void imdct_init (uint32_t mm_accel)
 {
 #ifdef LIBA52_MLIB
     if (mm_accel & MM_ACCEL_MLIB) {
+        fprintf (stderr, "Using mlib for IMDCT transform\n");
 	imdct_512 = imdct_do_512_mlib;
 	imdct_256 = imdct_do_256_mlib;
     } else
 #endif
     {
 	int i, j, k;
+
+	fprintf (stderr, "No accelerated IMDCT transform found\n");
 
 	/* Twiddle factors to turn IFFT into IMDCT */
 	for (i = 0; i < 128; i++) {

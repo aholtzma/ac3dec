@@ -189,9 +189,16 @@ void a52_decode_data (uint8_t * start, uint8_t * end)
     static uint8_t buf[3840];
     static uint8_t * bufptr = buf;
     static uint8_t * bufpos = buf + 7;
-    int sample_rate;
+
+    /*
+     * sample_rate and flags are static because this routine could
+     * exit between the a52_syncinfo() and the ao_setup(), and we want
+     * to have the same values when we get back !
+     */
+
+    static int sample_rate;
+    static int flags;
     int bit_rate;
-    int flags;
 
     while (start < end) {
 	*bufptr++ = *start++;

@@ -1,10 +1,11 @@
 * get rid of globals in bitstream parsing
-* get rid of statics in parse.c : q_1, q_1_pointer, etc
-* more statics in imdct.c ....
+* get rid of statics in imdct.c
 * avoid overflows, including reading the a52 stream !!!
 * make dither code faster (generate dither table in advance ?)
 * redo all bit allocation if previous frame had zero_snr_offsets
 * make dynrng work in dual-channel streams
+
+* fix and test mlib IMDCT
 
 * finish a52_internal.h cleanup
 	* use sensible data types

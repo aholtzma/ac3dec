@@ -237,8 +237,9 @@ bitstream.lo bitstream.o : bitstream.c ../include/config.h \
 downmix.lo downmix.o : downmix.c ../include/config.h ../include/a52.h \
 	a52_internal.h
 imdct.lo imdct.o : imdct.c ../include/config.h ../include/a52.h \
-	a52_internal.h
-imdct_mlib.lo imdct_mlib.o : imdct_mlib.c ../include/config.h
+	a52_internal.h ../include/mm_accel.h
+imdct_mlib.lo imdct_mlib.o : imdct_mlib.c ../include/config.h \
+	../include/a52.h a52_internal.h
 parse.lo parse.o : parse.c ../include/config.h ../include/a52.h \
 	a52_internal.h bitstream.h tables.h
 

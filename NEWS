@@ -1,3 +1,11 @@
+a52dec-0.7.1 Thu Aug 30 02:13:23 PDT 2001
+
+Minor release for bugfixes. Looks like 0.7.0 was a bit rushed out.
+
+Now compiles with gcc 3.0, made sure mlib implementation works, and
+fixed a small bug in the a52dec test program.
+
+
 a52dec-0.7.0 Thu Aug 23 23:18:00 PDT 2001 
 
 First release since more than one year !

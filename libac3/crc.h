@@ -1,8 +1,5 @@
-/*
- *
- *  output.h
- *
- *  Based on original code by Angus Mackay (amackay@gus.ml.org)
+/* 
+ *  crc.h
  *
  *	Copyright (C) Aaron Holtzman - May 1999
  *
@@ -23,7 +20,9 @@
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
  *
  */
-
-int output_open(int bits, int rate, int channels);
-void output_play(sint_16* output_samples, uint_32 num_bytes);
-void output_close(void);
+ 
+int crc_validate(void);
+void crc_process(uint_32 data, uint_32 num_bits);
+void crc_init(void);
+void crc_process_32(uint_32 data);
+void crc_process_8(uint_32 data);

@@ -1,8 +1,5 @@
-/*
- *
- *  output.h
- *
- *  Based on original code by Angus Mackay (amackay@gus.ml.org)
+/* 
+ *    exponent.h
  *
  *	Copyright (C) Aaron Holtzman - May 1999
  *
@@ -24,6 +21,8 @@
  *
  */
 
-int output_open(int bits, int rate, int channels);
-void output_play(sint_16* output_samples, uint_32 num_bytes);
-void output_close(void);
+#define UNPACK_FBW  1
+#define UNPACK_CPL  2
+#define UNPACK_LFE  4
+
+void exponent_unpack( bsi_t *bsi, audblk_t *audblk);

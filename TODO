@@ -6,6 +6,7 @@
   of [-1.0,1.0]. This is why there is the normalization pass in
 	output.c. Need to investigate and hopefully we can move the
 	normalization.
+- Revisit convert_to_float and use int->float with scaling
 
 DONE
 - Use proper frame sizes in auxdata parsing - DONE July 1999 - AH

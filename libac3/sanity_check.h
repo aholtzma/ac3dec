@@ -1,8 +1,5 @@
-/*
- *
- *  output.h
- *
- *  Based on original code by Angus Mackay (amackay@gus.ml.org)
+/* 
+ *  sanity_check.h
  *
  *	Copyright (C) Aaron Holtzman - May 1999
  *
@@ -24,6 +21,7 @@
  *
  */
 
-int output_open(int bits, int rate, int channels);
-void output_play(sint_16* output_samples, uint_32 num_bytes);
-void output_close(void);
+#define AC3_MAGIC_NUMBER 0xdeadbeef
+
+void sanity_check_init(syncinfo_t *syncinfo, bsi_t *bsi, audblk_t *audblk);
+void sanity_check(syncinfo_t *syncinfo, bsi_t *bsi, audblk_t *audblk);

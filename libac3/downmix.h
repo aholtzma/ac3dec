@@ -1,10 +1,10 @@
 /*
  *
- *  output.h
+ *  downmix.h
+ *    
+ *	Copyright (C) Aaron Holtzman - Sept 1999
  *
- *  Based on original code by Angus Mackay (amackay@gus.ml.org)
- *
- *	Copyright (C) Aaron Holtzman - May 1999
+ *	Originally based on code by Yeqing Deng.
  *
  *  This file is part of ac3dec, a free Dolby AC-3 stream decoder.
  *	
@@ -22,8 +22,7 @@
  *  along with GNU Make; see the file COPYING.  If not, write to
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
  *
+ *
  */
 
-int output_open(int bits, int rate, int channels);
-void output_play(sint_16* output_samples, uint_32 num_bytes);
-void output_close(void);
+void downmix(bsi_t* bsi, stream_samples_t stream_samples,sint_16 *output_samples);

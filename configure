@@ -454,7 +454,7 @@ echo > confdefs.h
 
 # A filename unique to this package, relative to the directory that
 # configure is in, which we can look for to find out if srcdir is correct.
-ac_unique_file=decode.c
+ac_unique_file=ac3dec.c
 
 # Find the source files, if location was not specified.
 if test -z "$srcdir"; then
@@ -524,6 +524,9 @@ else
 fi
 
 
+
+
+
 ac_aux_dir=
 for ac_dir in $srcdir $srcdir/.. $srcdir/../..; do
   if test -f $ac_dir/install-sh; then
@@ -550,7 +553,7 @@ else { echo "configure: error: can not run $ac_config_sub" 1>&2; exit 1; }
 fi
 
 echo $ac_n "checking host system type""... $ac_c" 1>&6
-echo "configure:554: checking host system type" >&5
+echo "configure:557: checking host system type" >&5
 
 host_alias=$host
 case "$host_alias" in
@@ -569,9 +572,6 @@ host_cpu=`echo $host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\1/'`
 host_vendor=`echo $host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\2/'`
 host_os=`echo $host | sed 's/^\([^-]*\)-\([^-]*\)-\(.*\)$/\3/'`
 echo "$ac_t""$host" 1>&6
-
-
-
 
 
 # Find a good install program.  We prefer a C program (faster),
@@ -725,7 +725,7 @@ fi
 
 PACKAGE=ac3dec
 
-VERSION=0.5.6
+VERSION=0.6.0
 
 if test "`cd $srcdir && pwd`" != "`pwd`" && test -f $srcdir/config.status; then
   { echo "configure: error: source directory already configured; run "make distclean" there first" 1>&2; exit 1; }
@@ -1260,6 +1260,25 @@ case "$host" in
 *) echo "$host is not currently supported by ac3dec"; exit 1;;
 esac
 
+case "$host" in
+i?86-*) cat >> confdefs.h <<\EOF
+#define __i386__ 1
+EOF
+;;
+alpha*-*) cat >> confdefs.h <<\EOF
+#define __alpha__ 1
+EOF
+;;
+sparc-*) cat >> confdefs.h <<\EOF
+#define __sparc__ 1
+EOF
+;;
+ppc-*) cat >> confdefs.h <<\EOF
+#define __ppc__ 1
+EOF
+;;
+*) echo "$host is not currently supported by ac3dec"; exit 1;;
+esac
 
 trap '' 1 2 15
 cat > confcache <<\EOF
@@ -1362,7 +1381,7 @@ done
 ac_given_srcdir=$srcdir
 ac_given_INSTALL="$INSTALL"
 
-trap 'rm -fr `echo "tools/Makefile test/Makefile Makefile  config.h" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
+trap 'rm -fr `echo "libac3/Makefile tools/Makefile test/Makefile Makefile  config.h" | sed "s/:[^ ]*//g"` conftest*; exit 1' 1 2 15
 EOF
 cat >> $CONFIG_STATUS <<EOF
 
@@ -1457,7 +1476,7 @@ EOF
 
 cat >> $CONFIG_STATUS <<EOF
 
-CONFIG_FILES=\${CONFIG_FILES-"tools/Makefile test/Makefile Makefile "}
+CONFIG_FILES=\${CONFIG_FILES-"libac3/Makefile tools/Makefile test/Makefile Makefile "}
 EOF
 cat >> $CONFIG_STATUS <<\EOF
 for ac_file in .. $CONFIG_FILES; do if test "x$ac_file" != x..; then

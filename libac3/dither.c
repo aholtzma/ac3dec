@@ -1,8 +1,5 @@
-/*
- *
- *  output.h
- *
- *  Based on original code by Angus Mackay (amackay@gus.ml.org)
+/* 
+ *    dither.c
  *
  *	Copyright (C) Aaron Holtzman - May 1999
  *
@@ -24,6 +21,45 @@
  *
  */
 
-int output_open(int bits, int rate, int channels);
-void output_play(sint_16* output_samples, uint_32 num_bytes);
-void output_close(void);
+
+#include <stdlib.h>
+#include <stdio.h>
+#include "ac3.h"
+#include "ac3_internal.h"
+
+
+#include "dither.h"
+
+static uint_32 lfsr_state = 1;
+
+/* 
+ * Generate eight bits of pseudo-entropy using a 16 bit linear
+ * feedback shift register (LFSR). The primitive polynomial used
+ * is 1 + x^4 + x^14 + x^16.
+ *
+ * The distribution is uniform, over the range [-0.707,0.707]
+ *
+ */
+uint_16 dither_gen(void)
+{
+	int i;
+	uint_32 state;
+
+	//explicitly bring the state into a local var as gcc > 3.0?
+	//doesn't know how to optimize out the stores
+	state = lfsr_state;
+
+	//Generate eight pseudo random bits
+	for(i=0;i<8;i++)
+	{
+		state <<= 1;	
+
+		if(state & 0x10000)
+			state ^= 0xa011;
+	}
+
+	lfsr_state = state;
+
+	return (((((sint_32)state<<8)>>8) * (sint_32) (0.707106 * 256.0))>>16);
+}
+

@@ -7,9 +7,7 @@ Contributors:
 	Jim Miller <jmiller@heli.engr.sgi.com> - IRIX output.c
 	Angelos Keromytis <angelos@dsl.cis.upenn.edu> - OpenBSD fixes
 	Don Mahurin <dmahurin@dma.org> - stdin support for extract_ac3
-	Todd Squires  <squirest@wwa.com> - Alpha fixes
 	Charles M. Hannum <root@ihack.net> - fixes
-
 
 
 See the file COPYING for license details.

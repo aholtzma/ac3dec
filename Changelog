@@ -1,11 +1,9 @@
 ac3dec-0.5.6 Tue Nov 16 00:37:34 EST 1999
--Irix support 
--Alpha fixes 
+-Irix support added by Jim Miller <jmiller@heli.engr.sgi.com> 
 -Minor performance enhancements to downmix and imdct
--OpenBSD fixes 
+-OpenBSD fixes
 -extract_ac3 can now read from stdin
--Change output_linux to block on write instead of using the
- ring buffer. Let me know if this causes/fixes any problems
+-Tweakage of the ring_buffer size and output_linux.c sleep time
 
 ac3dec-0.5.5 Wed Aug 25 15:36:44 EDT 1999
 -Fixed a cut and paste bug (argh!) in parse.c which potentially 

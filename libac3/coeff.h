@@ -1,10 +1,7 @@
-/*
+/* 
+ *    coeff.h
  *
- *  output.h
- *
- *  Based on original code by Angus Mackay (amackay@gus.ml.org)
- *
- *	Copyright (C) Aaron Holtzman - May 1999
+ *	Copyright (C) Aaron Holtzman - Feb 2000
  *
  *  This file is part of ac3dec, a free Dolby AC-3 stream decoder.
  *	
@@ -24,6 +21,4 @@
  *
  */
 
-int output_open(int bits, int rate, int channels);
-void output_play(sint_16* output_samples, uint_32 num_bytes);
-void output_close(void);
+void coeff_unpack(bsi_t *bsi, audblk_t *audblk,stream_samples_t samples);

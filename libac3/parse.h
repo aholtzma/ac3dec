@@ -1,8 +1,5 @@
-/*
- *
- *  output.h
- *
- *  Based on original code by Angus Mackay (amackay@gus.ml.org)
+/* 
+ *    parse.h
  *
  *	Copyright (C) Aaron Holtzman - May 1999
  *
@@ -24,6 +21,8 @@
  *
  */
 
-int output_open(int bits, int rate, int channels);
-void output_play(sint_16* output_samples, uint_32 num_bytes);
-void output_close(void);
+void parse_syncinfo(syncinfo_t *syncinfo);
+void parse_audblk(bsi_t *bsi,audblk_t *audblk);
+void parse_bsi(bsi_t *bsi);
+void parse_auxdata(syncinfo_t *syncinfo);
+

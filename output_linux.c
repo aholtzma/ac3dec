@@ -40,20 +40,16 @@
 #endif
 #include <sys/ioctl.h>
 
+//this sux...types should go in config.h methinks
+typedef signed short sint_16;
+typedef unsigned int uint_32;
 
-#include "ac3.h"
-#include "decode.h"
-#include "debug.h"
 #include "output.h"
-#include "downmix.h"
-#include "ring_buffer.h"
 
-
-#define BUFFER_SIZE 1024 
 
 static char dev[] = "/dev/dsp";
 static int fd;
-static sint_16 out_buf[BUFFER_SIZE];
+
 
 /*
  * open the audio device for writing to
@@ -69,23 +65,25 @@ int output_open(int bits, int rate, int channels)
 	fd=open(dev,O_WRONLY);
   if(fd < 0) 
   {
-    dprintf("%s: Opening audio device %s\n",
+    fprintf(stderr,"%s: Opening audio device %s\n",
         strerror(errno), dev);
     goto ERR;
   }
-	dprintf("Opened audio device \"%s\"\n",dev);
-
-	tmp = BUFFER_SIZE;
-  ioctl(fd,SNDCTL_DSP_SETFRAGMENT,&tmp);
-
-  tmp = bits;
-  ioctl(fd,SNDCTL_DSP_SAMPLESIZE,&tmp);
 
   tmp = channels == 2 ? 1 : 0;
   ioctl(fd,SNDCTL_DSP_STEREO,&tmp);
 
+  tmp = bits;
+  ioctl(fd,SNDCTL_DSP_SAMPLESIZE,&tmp);
+
   tmp = rate;
   ioctl(fd,SNDCTL_DSP_SPEED, &tmp);
+
+	//this is cheating
+	tmp = 256;
+  ioctl(fd,SNDCTL_DSP_SETFRAGMENT,&tmp);
+
+
 
 	return 1;
 
@@ -97,57 +95,12 @@ ERR:
 /*
  * play the sample to the already opened file descriptor
  */
-void output_play(bsi_t *bsi,stream_samples_t *samples)
+void output_play(sint_16* output_samples, uint_32 num_bytes)
 {
-  int i;
-	float *left,*right;
-	float norm;
-	float left_tmp = 0.0;
-	float right_tmp = 0.0;
+//	if(fd < 0)
+//		return;
 
-	if(fd < 0)
-		return;
-
-	//Downmix if necessary 
-	downmix(bsi,samples);
-
-	//Determine a normalization constant if the signal exceeds 
-	//100% digital [-1.0,1.0]
-	//
-	//perhaps use the dynamic range info to do this instead
-	
-	norm = 1.0;
-
-	for(i=0; i< 256;i++)
-	{
-    left_tmp = samples->channel[0][i];
-    right_tmp = samples->channel[1][i];
-
-		if(left_tmp > norm)
-			norm = left_tmp;
-		else if(left_tmp < -norm)
-			norm = -left_tmp;
-
-		if(right_tmp > norm)
-			norm = right_tmp;
-		else if(right_tmp < -norm)
-			norm = -right_tmp; 
-	}
-	norm = 32766.0f/norm;
-
-	/* Take the floating point audio data and convert it into
-	 * 16 bit signed PCM data */
-	left = samples->channel[0];
-	right = samples->channel[1];
-
-	for(i=0; i < 256; i++)
-	{
-		out_buf[i * 2 ]    = (sint_16) (*left++  * norm);
-		out_buf[i * 2 + 1] = (sint_16) (*right++ * norm);
-
-	}
-
-	write(fd,out_buf,BUFFER_SIZE);
+	write(fd,output_samples,1024 * 6);
 }
 
 

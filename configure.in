@@ -2,11 +2,11 @@ dnl Autoconf configuration script ac3dec
 dnl 
 dnl Aaron Holtzman - May 1999
 dnl
-AC_INIT(decode.c)
+AC_INIT(ac3dec.c)
+AM_CONFIG_HEADER(config.h)
 AC_CANONICAL_HOST
 AC_PREREQ(2.13)
-AM_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE(ac3dec, 0.5.6)
+AM_INIT_AUTOMAKE(ac3dec, 0.6.0)
 
 AM_MAINTAINER_MODE
 AC_PROG_CC
@@ -24,5 +24,13 @@ case "$host" in
 *) echo "$host is not currently supported by ac3dec"; exit 1;;
 esac
 
+dnl Set the appropriate architecture define
+case "$host" in
+i?86-*) AC_DEFINE(__i386__);;
+alpha*-*) AC_DEFINE(__alpha__);;
+sparc-*) AC_DEFINE(__sparc__);;
+ppc-*) AC_DEFINE(__ppc__);;
+*) echo "$host is not currently supported by ac3dec"; exit 1;;
+esac
 
-AC_OUTPUT(tools/Makefile test/Makefile Makefile ) 
+AC_OUTPUT(libac3/Makefile tools/Makefile test/Makefile Makefile ) 

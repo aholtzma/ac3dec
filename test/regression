@@ -26,9 +26,21 @@ basedir=`cd $basedir;pwd`
 cd $builddir
 error=0
 
+a52dec="../src/a52dec"; if [ ! -x $a52dec ]; then
+    if [ -x ../vc++/Release/a52dec.exe ]; then
+	a52dec="../vc++/Release/a52dec.exe"
+	basedir=`echo "$basedir" | sed "s,/cygdrive/\(.\)/,\1:/,"`
+    elif [ -x ../vc++/Debug/a52dec.exe ]; then
+	a52dec="../vc++/Debug/a52dec.exe"
+	basedir=`echo "$basedir" | sed "s,/cygdrive/\(.\)/,\1:/,"`
+    else
+	echo "Can not find a52dec executable"; exit 1
+    fi
+fi
+
 for dir in $dirs; do
     echo $dir
-    ../src/a52dec -co float $basedir/$dir/stream >/dev/null 2>&1 >output.float
+    $a52dec -co float $basedir/$dir/stream >/dev/null 2>&1 >output.float
     ./compare output.float $basedir/$dir/output.float || error=1
     rm -f output.float
 done

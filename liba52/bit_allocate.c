@@ -1,8 +1,10 @@
 /*
  * bit_allocate.c
- * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 2000-2001 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of a52dec, a free ATSC A-52 stream decoder.
+ * See http://liba52.sourceforge.net/ for updates.
  *
  * a52dec is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -119,9 +121,9 @@ do {						\
     mask -= floor;				\
 } while (0)
 
-void bit_allocate (a52_state_t * state, a52_ba_t * ba, int bndstart,
-		   int start, int end, int fastleak, int slowleak,
-		   uint8_t * exp, int8_t * bap)
+void a52_bit_allocate (a52_state_t * state, a52_ba_t * ba, int bndstart,
+		       int start, int end, int fastleak, int slowleak,
+		       uint8_t * exp, int8_t * bap)
 {
     static int slowgain[4] = {0x540, 0x4d8, 0x478, 0x410};
     static int dbpbtab[4]  = {0xc00, 0x500, 0x300, 0x100};

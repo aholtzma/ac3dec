@@ -1,5 +1,5 @@
 /*
- * mm_accel.h
+ * tendra.h
  * Copyright (C) 2000-2001 Michel Lespinasse <walken@zoy.org>
  * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
@@ -21,17 +21,15 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef MM_ACCEL_H
-#define MM_ACCEL_H
+#pragma TenDRA begin
+#pragma TenDRA longlong type warning
 
-/* generic accelerations */
-#define MM_ACCEL_MLIB		0x00000001
+#ifdef TenDRA_check
 
-/* x86 accelerations */
-#define MM_ACCEL_X86_MMX	0x80000000
-#define MM_ACCEL_X86_3DNOW	0x40000000
-#define MM_ACCEL_X86_MMXEXT	0x20000000
+#pragma TenDRA conversion analysis (pointer-int explicit) off
+#pragma TenDRA implicit function declaration off
 
-uint32_t mm_accel (void);
+/* avoid the "No declarations in translation unit" problem */
+int TenDRA;
 
-#endif /* MM_ACCEL_H */
+#endif /* TenDRA_check */

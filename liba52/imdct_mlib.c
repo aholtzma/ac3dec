@@ -1,8 +1,10 @@
 /*
  * imdct_mlib.c
- * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 2000-2001 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of a52dec, a free ATSC A-52 stream decoder.
+ * See http://liba52.sourceforge.net/ for updates.
  *
  * a52dec is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,26 +25,27 @@
 
 #ifdef LIBA52_MLIB
 
-#include <inttypes.h>
-#include <string.h>
 #include <mlib_types.h>
 #include <mlib_status.h>
 #include <mlib_signal.h>
+#include <string.h>
+#include <inttypes.h>
 
 #include "a52.h"
 #include "a52_internal.h"
+#include "attributes.h"
 
-extern sample_t imdct_window[];
+extern sample_t a52_imdct_window[];
 
 void
-imdct_do_512_mlib(sample_t data[], sample_t delay[], sample_t bias)
+a52_imdct_do_512_mlib(sample_t data[], sample_t delay[], sample_t bias)
 {
 	sample_t *buf_real;
 	sample_t *buf_imag;
 	sample_t *data_ptr;
 	sample_t *delay_ptr;
 	sample_t *window_ptr;
-	sample_t tmp[256] __attribute__ ((__aligned__ (16)));
+	sample_t tmp[256] ATTR_ALIGN (16);
 	int i;
 	
 	memcpy(tmp, data, 256 * sizeof(sample_t));
@@ -52,7 +55,7 @@ imdct_do_512_mlib(sample_t data[], sample_t delay[], sample_t bias)
 	buf_imag = tmp + 128;
 	data_ptr = data;
 	delay_ptr = delay;
-	window_ptr = imdct_window;
+	window_ptr = a52_imdct_window;
 
 	/* Window and convert to real valued signal */
 	for(i=0; i< 64; i++) 
@@ -84,14 +87,14 @@ imdct_do_512_mlib(sample_t data[], sample_t delay[], sample_t bias)
 }
 
 void
-imdct_do_256_mlib(sample_t data[], sample_t delay[], sample_t bias)
+a52_imdct_do_256_mlib(sample_t data[], sample_t delay[], sample_t bias)
 {
 	sample_t *buf1_real, *buf1_imag;
 	sample_t *buf2_real, *buf2_imag;
 	sample_t *data_ptr;
 	sample_t *delay_ptr;
 	sample_t *window_ptr;
-	sample_t tmp[256] __attribute__ ((__aligned__ (16)));
+	sample_t tmp[256] ATTR_ALIGN (16);
 	int i;
 	
 	memcpy(tmp, data, 256 * sizeof(sample_t));
@@ -103,7 +106,7 @@ imdct_do_256_mlib(sample_t data[], sample_t delay[], sample_t bias)
 	buf2_imag = tmp + 128;
 	data_ptr = data;
 	delay_ptr = delay;
-	window_ptr = imdct_window;
+	window_ptr = a52_imdct_window;
 
 	/* Window and convert to real valued signal */
 	for(i=0; i< 64; i++) 

@@ -1,8 +1,10 @@
 /*
  * audio_out_solaris.c
- * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 2000-2001 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of a52dec, a free ATSC A-52 stream decoder.
+ * See http://liba52.sourceforge.net/ for updates.
  *
  * a52dec is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,16 +25,17 @@
 
 #ifdef LIBAO_SOLARIS
 
-#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/audioio.h>
+#include <inttypes.h>
 
 #include "a52.h"
 #include "audio_out.h"
+#include "audio_out_internal.h"
 
 typedef struct solaris_instance_s {
     ao_instance_t ao;
@@ -56,27 +59,6 @@ int solaris_setup (ao_instance_t * _instance, int sample_rate, int * flags,
     *bias = 384;
 
     return 0;
-}
-
-static inline int16_t convert (int32_t i)
-{
-    if (i > 0x43c07fff)
-	return 32767;
-    else if (i < 0x43bf8000)
-	return -32768;
-    else
-	return i - 0x43c00000;
-}
-
-static inline void float_to_int (float * _f, int16_t * s16, int flags)
-{
-    int i;
-    int32_t * f = (int32_t *) _f;
-
-    for (i = 0; i < 256; i++) {
-	s16[2*i] = convert (f[i]);
-	s16[2*i+1] = convert (f[i+256]);
-    }
 }
 
 int solaris_play (ao_instance_t * _instance, int flags, sample_t * _samples)
@@ -135,7 +117,7 @@ int solaris_play (ao_instance_t * _instance, int flags, sample_t * _samples)
     } else if (flags != instance->flags)
 	return 1;
 
-    float_to_int (samples, int16_samples, flags);
+    float2s16_2 (samples, int16_samples);
     write (instance->fd, int16_samples, 256 * sizeof (int16_t) * 2);
 
     return 0;

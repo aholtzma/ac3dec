@@ -1,5 +1,5 @@
 /*
- * audio_out.c
+ * float2s16.c
  * Copyright (C) 2000-2001 Michel Lespinasse <walken@zoy.org>
  * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
@@ -23,46 +23,55 @@
 
 #include "config.h"
 
-#include <stdlib.h>
 #include <inttypes.h>
 
 #include "a52.h"
 #include "audio_out.h"
 
-extern ao_open_t ao_oss_open;
-extern ao_open_t ao_ossdolby_open;
-extern ao_open_t ao_oss4_open;
-extern ao_open_t ao_oss6_open;
-extern ao_open_t ao_solaris_open;
-extern ao_open_t ao_solarisdolby_open;
-extern ao_open_t ao_wav_open;
-extern ao_open_t ao_wavdolby_open;
-extern ao_open_t ao_null_open;
-extern ao_open_t ao_null4_open;
-extern ao_open_t ao_null6_open;
-extern ao_open_t ao_float_open;
-
-static ao_driver_t audio_out_drivers[] = {
-#ifdef LIBAO_OSS
-    {"oss", ao_oss_open},
-    {"ossdolby", ao_ossdolby_open},
-    {"oss4", ao_oss4_open},
-    {"oss6", ao_oss6_open},
-#endif
-#ifdef LIBAO_SOLARIS
-    {"solaris", ao_solaris_open},
-    {"solarisdolby", ao_solarisdolby_open},
-#endif
-    {"wav", ao_wav_open},
-    {"wavdolby", ao_wavdolby_open},
-    {"null", ao_null_open},
-    {"null4", ao_null4_open},
-    {"null6", ao_null6_open},
-    {"float", ao_float_open},
-    {NULL, NULL}
-};
-
-ao_driver_t * ao_drivers (void)
+static inline int16_t convert (int32_t i)
 {
-    return audio_out_drivers;
+    if (i > 0x43c07fff)
+	return 32767;
+    else if (i < 0x43bf8000)
+	return -32768;
+    else
+	return i - 0x43c00000;
+}
+
+void float2s16_2 (float * _f, int16_t * s16)
+{
+    int i;
+    int32_t * f = (int32_t *) _f;
+
+    for (i = 0; i < 256; i++) {
+	s16[2*i] = convert (f[i]);
+	s16[2*i+1] = convert (f[i+256]);
+    }
+}
+
+void float2s16_4 (float * _f, int16_t * s16)
+{
+    int i;
+    int32_t * f = (int32_t *) _f;
+
+    for (i = 0; i < 256; i++) {
+	s16[4*i] = convert (f[i]);
+	s16[4*i+1] = convert (f[i+256]);
+	s16[4*i+2] = convert (f[i+512]);
+	s16[4*i+3] = convert (f[i+768]);
+    }
+}
+
+void float2s16_5 (float * _f, int16_t * s16)
+{
+    int i;
+    int32_t * f = (int32_t *) _f;
+
+    for (i = 0; i < 256; i++) {
+	s16[5*i] = convert (f[i]);
+	s16[5*i+1] = convert (f[i+256]);
+	s16[5*i+2] = convert (f[i+512]);
+	s16[5*i+3] = convert (f[i+768]);
+	s16[5*i+4] = convert (f[i+1024]);
+    }
 }

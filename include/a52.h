@@ -1,8 +1,10 @@
 /*
  * a52.h
- * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 2000-2001 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of a52dec, a free ATSC A-52 stream decoder.
+ * See http://liba52.sourceforge.net/ for updates.
  *
  * a52dec is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -18,6 +20,9 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
+
+#ifndef A52_H
+#define A52_H
 
 #ifndef LIBA52_DOUBLE
 typedef float sample_t;
@@ -113,3 +118,5 @@ int a52_frame (a52_state_t * state, uint8_t * buf, int * flags,
 void a52_dynrng (a52_state_t * state,
 		 sample_t (* call) (sample_t, void *), void * data);
 int a52_block (a52_state_t * state, sample_t * samples);
+
+#endif /* A52_H */

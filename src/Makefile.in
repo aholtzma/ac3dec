@@ -62,21 +62,26 @@ host_triplet = @host@
 AS = @AS@
 CC = @CC@
 DLLTOOL = @DLLTOOL@
+ECHO = @ECHO@
+EXEEXT = @EXEEXT@
 INCLUDES = @INCLUDES@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 OBJDUMP = @OBJDUMP@
+OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
+STRIP = @STRIP@
 VERSION = @VERSION@
 
 CFLAGS = @CFLAGS@ @A52DEC_CFLAGS@
 
 bin_PROGRAMS = a52dec extract_a52
 a52dec_SOURCES = a52dec.c getopt.c
-a52dec_LDADD = $(top_builddir)/liba52/liba52.la $(top_builddir)/libao/libao.la
+a52dec_LDADD = $(top_builddir)/liba52/liba52.la 	       $(top_builddir)/libao/libao.a @LIBAO_LIBS@
+
 extract_a52_SOURCES = extract_a52.c getopt.c
 
 man_MANS = a52dec.1 extract_a52.1
@@ -85,6 +90,7 @@ EXTRA_DIST = configure.incl getopt.h $(man_MANS)
 mkinstalldirs = $(SHELL) $(top_srcdir)/autotools/mkinstalldirs
 CONFIG_HEADER = ../include/config.h
 CONFIG_CLEAN_FILES = 
+bin_PROGRAMS =  a52dec$(EXEEXT) extract_a52$(EXEEXT)
 PROGRAMS =  $(bin_PROGRAMS)
 
 
@@ -92,11 +98,11 @@ DEFS = @DEFS@ -I. -I$(srcdir) -I../include
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
-a52dec_OBJECTS =  a52dec.o getopt.o
+a52dec_OBJECTS =  a52dec.$(OBJEXT) getopt.$(OBJEXT)
 a52dec_DEPENDENCIES =  $(top_builddir)/liba52/liba52.la \
-$(top_builddir)/libao/libao.la
+$(top_builddir)/libao/libao.a
 a52dec_LDFLAGS = 
-extract_a52_OBJECTS =  extract_a52.o getopt.o
+extract_a52_OBJECTS =  extract_a52.$(OBJEXT) getopt.$(OBJEXT)
 extract_a52_LDADD = $(LDADD)
 extract_a52_DEPENDENCIES = 
 extract_a52_LDFLAGS = 
@@ -120,7 +126,7 @@ OBJECTS = $(a52dec_OBJECTS) $(extract_a52_OBJECTS)
 
 all: all-redirect
 .SUFFIXES:
-.SUFFIXES: .S .c .lo .o .s
+.SUFFIXES: .S .c .lo .o .obj .s
 $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
 	cd $(top_srcdir) && $(AUTOMAKE) --gnu --include-deps src/Makefile
 
@@ -157,6 +163,11 @@ uninstall-binPROGRAMS:
 .c.o:
 	$(COMPILE) -c $<
 
+# FIXME: We should only use cygpath when building on Windows,
+# and only if it is available.
+.c.obj:
+	$(COMPILE) -c `cygpath -w $<`
+
 .s.o:
 	$(COMPILE) -c $<
 
@@ -165,6 +176,7 @@ uninstall-binPROGRAMS:
 
 mostlyclean-compile:
 	-rm -f *.o core *.core
+	-rm -f *.$(OBJEXT)
 
 clean-compile:
 
@@ -192,12 +204,12 @@ distclean-libtool:
 
 maintainer-clean-libtool:
 
-a52dec: $(a52dec_OBJECTS) $(a52dec_DEPENDENCIES)
-	@rm -f a52dec
+a52dec$(EXEEXT): $(a52dec_OBJECTS) $(a52dec_DEPENDENCIES)
+	@rm -f a52dec$(EXEEXT)
 	$(LINK) $(a52dec_LDFLAGS) $(a52dec_OBJECTS) $(a52dec_LDADD) $(LIBS)
 
-extract_a52: $(extract_a52_OBJECTS) $(extract_a52_DEPENDENCIES)
-	@rm -f extract_a52
+extract_a52$(EXEEXT): $(extract_a52_OBJECTS) $(extract_a52_DEPENDENCIES)
+	@rm -f extract_a52$(EXEEXT)
 	$(LINK) $(extract_a52_LDFLAGS) $(extract_a52_OBJECTS) $(extract_a52_LDADD) $(LIBS)
 
 install-man1:

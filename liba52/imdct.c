@@ -1,8 +1,10 @@
 /*
  * imdct.c
- * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 2000-2001 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of a52dec, a free ATSC A-52 stream decoder.
+ * See http://liba52.sourceforge.net/ for updates.
  *
  * a52dec is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,16 +23,19 @@
 
 #include "config.h"
 
-#include <inttypes.h>
 #include <math.h>
 #include <stdio.h>
+#ifndef M_PI
+#define M_PI 3.1415926535897932384626433832795029
+#endif
+#include <inttypes.h>
 
 #include "a52.h"
 #include "a52_internal.h"
 #include "mm_accel.h"
 
-void (* imdct_256) (sample_t data[], sample_t delay[], sample_t bias);
-void (* imdct_512) (sample_t data[], sample_t delay[], sample_t bias);
+void (* a52_imdct_256) (sample_t data[], sample_t delay[], sample_t bias);
+void (* a52_imdct_512) (sample_t data[], sample_t delay[], sample_t bias);
 
 typedef struct complex_s {
     sample_t real;
@@ -86,7 +91,7 @@ static sample_t xcos2[64];
 static sample_t xsin2[64];
 
 /* Windowing function for Modified DCT - Thank you acroread */
-sample_t imdct_window[] = {
+sample_t a52_imdct_window[] = {
 	0.00014, 0.00024, 0.00037, 0.00051, 0.00067, 0.00086, 0.00107, 0.00130,
 	0.00157, 0.00187, 0.00220, 0.00256, 0.00297, 0.00341, 0.00390, 0.00443,
 	0.00501, 0.00564, 0.00632, 0.00706, 0.00785, 0.00871, 0.00962, 0.01061,
@@ -142,7 +147,7 @@ static inline complex_t cmplx_mult(complex_t a, complex_t b)
     return ret;
 }
 
-void
+static void
 imdct_do_512(sample_t data[],sample_t delay[], sample_t bias)
 {
     int i,k;
@@ -212,7 +217,7 @@ imdct_do_512(sample_t data[],sample_t delay[], sample_t bias)
 	
     data_ptr = data;
     delay_ptr = delay;
-    window_ptr = imdct_window;
+    window_ptr = a52_imdct_window;
 
     /* Window and convert to real valued signal */
     for(i=0; i< 64; i++) { 
@@ -239,7 +244,7 @@ imdct_do_512(sample_t data[],sample_t delay[], sample_t bias)
     }
 }
 
-void
+static void
 imdct_do_256(sample_t data[],sample_t delay[],sample_t bias)
 {
     int i,k;
@@ -341,7 +346,7 @@ imdct_do_256(sample_t data[],sample_t delay[],sample_t bias)
 	
     data_ptr = data;
     delay_ptr = delay;
-    window_ptr = imdct_window;
+    window_ptr = a52_imdct_window;
 
     /* Window and convert to real valued signal */
     for(i=0; i< 64; i++) { 
@@ -367,13 +372,13 @@ imdct_do_256(sample_t data[],sample_t delay[],sample_t bias)
     }
 }
 
-void imdct_init (uint32_t mm_accel)
+void a52_imdct_init (uint32_t mm_accel)
 {
 #ifdef LIBA52_MLIB
     if (mm_accel & MM_ACCEL_MLIB) {
         fprintf (stderr, "Using mlib for IMDCT transform\n");
-	imdct_512 = imdct_do_512_mlib;
-	imdct_256 = imdct_do_256_mlib;
+	a52_imdct_512 = a52_imdct_do_512_mlib;
+	a52_imdct_256 = a52_imdct_do_256_mlib;
     } else
 #endif
     {
@@ -400,7 +405,7 @@ void imdct_init (uint32_t mm_accel)
 		w[i][k].imag = sin (-M_PI * k / j);
 	    }
 	}
-	imdct_512 = imdct_do_512;
-	imdct_256 = imdct_do_256;
+	a52_imdct_512 = imdct_do_512;
+	a52_imdct_256 = imdct_do_256;
     }
 }

@@ -1,3 +1,11 @@
+a52dec-0.7.2 Sun Dec 16 14:39:56 PST 2001
+
+Minor bugfixes, performance and portability enhancements.
+
+Also added wav format output, and reduced the demux buffer size which
+makes it easier to use a52dec as a pipe.
+
+
 a52dec-0.7.1 Thu Aug 30 02:13:23 PDT 2001
 
 Minor release for bugfixes. Looks like 0.7.0 was a bit rushed out.

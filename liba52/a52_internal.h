@@ -1,8 +1,10 @@
 /*
  * a52_internal.h
- * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 2000-2001 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of a52dec, a free ATSC A-52 stream decoder.
+ * See http://liba52.sourceforge.net/ for updates.
  *
  * a52dec is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,20 +37,22 @@
 #define DELTA_BIT_NONE (2)
 #define DELTA_BIT_RESERVED (3)
 
-void bit_allocate (a52_state_t * state, a52_ba_t * ba, int bndstart,
-		   int start, int end, int fastleak, int slowleak,
-		   uint8_t * exp, int8_t * bap);
+void a52_bit_allocate (a52_state_t * state, a52_ba_t * ba, int bndstart,
+		       int start, int end, int fastleak, int slowleak,
+		       uint8_t * exp, int8_t * bap);
 
-int downmix_init (int input, int flags, sample_t * level,
+int a52_downmix_init (int input, int flags, sample_t * level,
+		      sample_t clev, sample_t slev);
+int a52_downmix_coeff (sample_t * coeff, int acmod, int output, sample_t level,
+		       sample_t clev, sample_t slev);
+void a52_downmix (sample_t * samples, int acmod, int output, sample_t bias,
 		  sample_t clev, sample_t slev);
-int downmix_coeff (sample_t * coeff, int acmod, int output, sample_t level,
-		   sample_t clev, sample_t slev);
-void downmix (sample_t * samples, int acmod, int output, sample_t bias,
-	      sample_t clev, sample_t slev);
-void upmix (sample_t * samples, int acmod, int output);
+void a52_upmix (sample_t * samples, int acmod, int output);
 
-void imdct_init (uint32_t mm_accel);
-extern void (* imdct_256) (sample_t * data, sample_t * delay, sample_t bias);
-extern void (* imdct_512) (sample_t * data, sample_t * delay, sample_t bias);
-void imdct_do_256_mlib (sample_t * data, sample_t * delay, sample_t bias);
-void imdct_do_512_mlib (sample_t * data, sample_t * delay, sample_t bias);
+void a52_imdct_init (uint32_t mm_accel);
+extern void (* a52_imdct_256) (sample_t * data, sample_t * delay,
+			       sample_t bias);
+extern void (* a52_imdct_512) (sample_t * data, sample_t * delay,
+			       sample_t bias);
+void a52_imdct_do_256_mlib (sample_t * data, sample_t * delay, sample_t bias);
+void a52_imdct_do_512_mlib (sample_t * data, sample_t * delay, sample_t bias);

@@ -62,25 +62,30 @@ host_triplet = @host@
 AS = @AS@
 CC = @CC@
 DLLTOOL = @DLLTOOL@
+ECHO = @ECHO@
+EXEEXT = @EXEEXT@
 INCLUDES = @INCLUDES@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 OBJDUMP = @OBJDUMP@
+OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
+STRIP = @STRIP@
 VERSION = @VERSION@
 
 noinst_PROGRAMS = compare
 compare_SOURCES = compare.c
 compare_LDADD = -lm
 
-EXTRA_DIST = regression tests
-TESTS = regression
+EXTRA_DIST = regression tests compile globals
+TESTS = regression compile globals
 mkinstalldirs = $(SHELL) $(top_srcdir)/autotools/mkinstalldirs
 CONFIG_HEADER = ../include/config.h
 CONFIG_CLEAN_FILES = 
+noinst_PROGRAMS =  compare$(EXEEXT)
 PROGRAMS =  $(noinst_PROGRAMS)
 
 
@@ -88,7 +93,7 @@ DEFS = @DEFS@ -I. -I$(srcdir) -I../include
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
-compare_OBJECTS =  compare.o
+compare_OBJECTS =  compare.$(OBJEXT)
 compare_DEPENDENCIES = 
 compare_LDFLAGS = 
 CFLAGS = @CFLAGS@
@@ -108,7 +113,7 @@ OBJECTS = $(compare_OBJECTS)
 
 all: all-redirect
 .SUFFIXES:
-.SUFFIXES: .S .c .lo .o .s
+.SUFFIXES: .S .c .lo .o .obj .s
 $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
 	cd $(top_srcdir) && $(AUTOMAKE) --gnu --include-deps test/Makefile
 
@@ -129,6 +134,11 @@ maintainer-clean-noinstPROGRAMS:
 .c.o:
 	$(COMPILE) -c $<
 
+# FIXME: We should only use cygpath when building on Windows,
+# and only if it is available.
+.c.obj:
+	$(COMPILE) -c `cygpath -w $<`
+
 .s.o:
 	$(COMPILE) -c $<
 
@@ -137,6 +147,7 @@ maintainer-clean-noinstPROGRAMS:
 
 mostlyclean-compile:
 	-rm -f *.o core *.core
+	-rm -f *.$(OBJEXT)
 
 clean-compile:
 
@@ -164,8 +175,8 @@ distclean-libtool:
 
 maintainer-clean-libtool:
 
-compare: $(compare_OBJECTS) $(compare_DEPENDENCIES)
-	@rm -f compare
+compare$(EXEEXT): $(compare_OBJECTS) $(compare_DEPENDENCIES)
+	@rm -f compare$(EXEEXT)
 	$(LINK) $(compare_LDFLAGS) $(compare_OBJECTS) $(compare_LDADD) $(LIBS)
 
 tags: TAGS

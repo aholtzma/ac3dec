@@ -1,8 +1,10 @@
 /*
  * audio_out_oss.c
- * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 2000-2001 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of a52dec, a free ATSC A-52 stream decoder.
+ * See http://liba52.sourceforge.net/ for updates.
  *
  * a52dec is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,23 +25,32 @@
 
 #ifdef LIBAO_OSS
 
-#include <inttypes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <inttypes.h>
 
 #if defined(__OpenBSD__)
 #include <soundcard.h>
 #elif defined(__FreeBSD__)
 #include <machine/soundcard.h>
+#ifndef AFMT_S16_NE
+#include <machine/endian.h>
+#if BYTE_ORDER == LITTLE_ENDIAN
+#define AFMT_S16_NE AFMT_S16_LE
+#else
+#define AFMT_S16_NE AFMT_S16_BE
+#endif
+#endif
 #else
 #include <sys/soundcard.h>
 #endif
 
 #include "a52.h"
 #include "audio_out.h"
+#include "audio_out_internal.h"
 
 typedef struct oss_instance_s {
     ao_instance_t ao;
@@ -90,10 +101,7 @@ static inline void float_to_int (float * _f, int16_t * s16, int flags)
     case A52_CHANNEL:
     case A52_STEREO:
     case A52_DOLBY:
-	for (i = 0; i < 256; i++) {
-	    s16[2*i] = convert (f[i]);
-	    s16[2*i+1] = convert (f[i+256]);
-	}
+	float2s16_2 (_f, s16);
 	break;
     case A52_3F:
 	for (i = 0; i < 256; i++) {
@@ -104,21 +112,10 @@ static inline void float_to_int (float * _f, int16_t * s16, int flags)
 	}
 	break;
     case A52_2F2R:
-	for (i = 0; i < 256; i++) {
-	    s16[4*i] = convert (f[i]);
-	    s16[4*i+1] = convert (f[i+256]);
-	    s16[4*i+2] = convert (f[i+512]);
-	    s16[4*i+3] = convert (f[i+768]);
-	}
+	float2s16_4 (_f, s16);
 	break;
     case A52_3F2R:
-	for (i = 0; i < 256; i++) {
-	    s16[5*i] = convert (f[i]);
-	    s16[5*i+1] = convert (f[i+512]);
-	    s16[5*i+2] = convert (f[i+768]);
-	    s16[5*i+3] = convert (f[i+1024]);
-	    s16[5*i+4] = convert (f[i+256]);
-	}
+	float2s16_5 (_f, s16);
 	break;
     case A52_MONO | A52_LFE:
 	for (i = 0; i < 256; i++) {

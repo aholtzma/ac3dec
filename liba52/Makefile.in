@@ -62,14 +62,18 @@ host_triplet = @host@
 AS = @AS@
 CC = @CC@
 DLLTOOL = @DLLTOOL@
+ECHO = @ECHO@
+EXEEXT = @EXEEXT@
 INCLUDES = @INCLUDES@
 LIBTOOL = @LIBTOOL@
 LN_S = @LN_S@
 MAINT = @MAINT@
 MAKEINFO = @MAKEINFO@
 OBJDUMP = @OBJDUMP@
+OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
+STRIP = @STRIP@
 VERSION = @VERSION@
 
 CFLAGS = @CFLAGS@ @LIBA52_CFLAGS@
@@ -111,7 +115,7 @@ OBJECTS = $(liba52_la_OBJECTS)
 
 all: all-redirect
 .SUFFIXES:
-.SUFFIXES: .S .c .lo .o .s
+.SUFFIXES: .S .c .lo .o .obj .s
 $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
 	cd $(top_srcdir) && $(AUTOMAKE) --gnu --include-deps liba52/Makefile
 
@@ -148,6 +152,11 @@ uninstall-libLTLIBRARIES:
 .c.o:
 	$(COMPILE) -c $<
 
+# FIXME: We should only use cygpath when building on Windows,
+# and only if it is available.
+.c.obj:
+	$(COMPILE) -c `cygpath -w $<`
+
 .s.o:
 	$(COMPILE) -c $<
 
@@ -156,6 +165,7 @@ uninstall-libLTLIBRARIES:
 
 mostlyclean-compile:
 	-rm -f *.o core *.core
+	-rm -f *.$(OBJEXT)
 
 clean-compile:
 
@@ -238,8 +248,7 @@ downmix.lo downmix.o : downmix.c ../include/config.h ../include/a52.h \
 	a52_internal.h
 imdct.lo imdct.o : imdct.c ../include/config.h ../include/a52.h \
 	a52_internal.h ../include/mm_accel.h
-imdct_mlib.lo imdct_mlib.o : imdct_mlib.c ../include/config.h \
-	../include/a52.h a52_internal.h
+imdct_mlib.lo imdct_mlib.o : imdct_mlib.c ../include/config.h
 parse.lo parse.o : parse.c ../include/config.h ../include/a52.h \
 	a52_internal.h bitstream.h tables.h
 

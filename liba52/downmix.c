@@ -1,8 +1,10 @@
 /*
  * downmix.c
- * Copyright (C) 1999-2001 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
+ * Copyright (C) 2000-2001 Michel Lespinasse <walken@zoy.org>
+ * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
  * This file is part of a52dec, a free ATSC A-52 stream decoder.
+ * See http://liba52.sourceforge.net/ for updates.
  *
  * a52dec is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -21,16 +23,16 @@
 
 #include "config.h"
 
-#include <inttypes.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include "a52.h"
 #include "a52_internal.h"
 
 #define CONVERT(acmod,output) (((output) << 3) + (acmod))
 
-int downmix_init (int input, int flags, sample_t * level,
-		  sample_t clev, sample_t slev)
+int a52_downmix_init (int input, int flags, sample_t * level,
+		      sample_t clev, sample_t slev)
 {
     static uint8_t table[11][8] = {
 	{A52_CHANNEL,	A52_DOLBY,	A52_STEREO,	A52_STEREO,
@@ -149,8 +151,8 @@ int downmix_init (int input, int flags, sample_t * level,
     return output;
 }
 
-int downmix_coeff (sample_t * coeff, int acmod, int output, sample_t level,
-		   sample_t clev, sample_t slev)
+int a52_downmix_coeff (sample_t * coeff, int acmod, int output, sample_t level,
+		       sample_t clev, sample_t slev)
 {
     switch (CONVERT (acmod, output & A52_CHANNEL_MASK)) {
 
@@ -445,8 +447,8 @@ static void zero (sample_t * samples)
 	samples[i] = 0;
 }
 
-void downmix (sample_t * samples, int acmod, int output, sample_t bias,
-	      sample_t clev, sample_t slev)
+void a52_downmix (sample_t * samples, int acmod, int output, sample_t bias,
+		  sample_t clev, sample_t slev)
 {
     switch (CONVERT (acmod, output & A52_CHANNEL_MASK)) {
 
@@ -586,7 +588,7 @@ void downmix (sample_t * samples, int acmod, int output, sample_t bias,
     }
 }
 
-void upmix (sample_t * samples, int acmod, int output)
+void a52_upmix (sample_t * samples, int acmod, int output)
 {
     switch (CONVERT (acmod, output & A52_CHANNEL_MASK)) {
 

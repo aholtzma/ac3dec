@@ -1,5 +1,5 @@
 /*
- * mm_accel.h
+ * attributes.h
  * Copyright (C) 2000-2001 Michel Lespinasse <walken@zoy.org>
  * Copyright (C) 1999-2000 Aaron Holtzman <aholtzma@ess.engr.uvic.ca>
  *
@@ -21,17 +21,9 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#ifndef MM_ACCEL_H
-#define MM_ACCEL_H
-
-/* generic accelerations */
-#define MM_ACCEL_MLIB		0x00000001
-
-/* x86 accelerations */
-#define MM_ACCEL_X86_MMX	0x80000000
-#define MM_ACCEL_X86_3DNOW	0x40000000
-#define MM_ACCEL_X86_MMXEXT	0x20000000
-
-uint32_t mm_accel (void);
-
-#endif /* MM_ACCEL_H */
+/* use gcc attribs to align critical data structures */
+#ifdef ATTRIBUTE_ALIGNED_MAX
+#define ATTR_ALIGN(align) __attribute__ ((__aligned__ ((ATTRIBUTE_ALIGNED_MAX < align) ? ATTRIBUTE_ALIGNED_MAX : align)))
+#else
+#define ATTR_ALIGN(align)
+#endif

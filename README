@@ -9,7 +9,7 @@ is also known as AC-3.
 
 The main goals in liba52 development are:
 
-      * Portability - most of the code is written in C, and when we
+      *	Portability - most of the code is written in C, and when we
 	use platform-specific optimizations we always have a generic C
 	routine to fall back on. We actually have very few
 	platform-specific routines for now - only mlib which is a
@@ -67,8 +67,8 @@ projects, including:
 	mpeg-2 audio and video decoder, but it since became a
 	full-featured DVD and video media player.
 
-      *	MPlayer (http://banki1.banki.hu/~arpi/MPlayer.html/) - another
-	good player, it is also very robust against damaged streams.
+      *	MPlayer (http://www.MPlayerHQ.hu) - another good player, it is
+	also very robust against damaged streams.
 
       *	movietime (http://movietime.sourceforge.net/) - still quite
 	young, but it looks very promising !
@@ -76,11 +76,11 @@ projects, including:
       *	ffmpeg (http://ffmpeg.sourceforge.net/) - a nice audio/video
 	encoder and transcoder, uses liba52 for decoding A/52 streams.
 
-      * OMS (http://www.linuxvideo.org/oms/)
+      *	OMS (http://www.linuxvideo.org/oms/)
 
-      * XMPS (http://xmps.sourceforge.net/)
+      *	XMPS (http://xmps.sourceforge.net/)
 
-      * GStreamer (http://www.gstreamer.net/) - a framework for
+      *	GStreamer (http://www.gstreamer.net/) - a framework for
 	streaming media; it has an A/52 decoding plugin based on liba52.
 
       *	mpeglib (http://mpeglib.sourceforge.net/) - a video decoding
@@ -95,6 +95,9 @@ still a cool project :)
 TASKS
 
 There are several places where we could easily use some help:
+
+      *	Web design: This site sucks ! at the very least, we'd like to
+	come up with a nicer background picture and a logo.
 
       *	Testing: If you find any stream that does not decode right
 	with liba52, let us know ! The best thing would be to mail to

@@ -1,3 +1,11 @@
+a52dec-0.7.2 Sun Dec 16 14:39:56 PST 2001
+-demuxer improvements, with support for TS streams.
+-smaller demux buffer, making it easier to use a52dec as a pipe
+-wav output
+-avoid -fPIC when possible (-prefer-non-pic)
+-support for vc++ and TenDRA
+-portability fixes
+	
 a52dec-0.7.1b Fri Aug 31 02:37:23 PDT 2001
 -removed an #include <stdint.h> that was only breaking libc5 builds
 

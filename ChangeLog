@@ -1,3 +1,6 @@
+a52dec-0.7.1b Fri Aug 31 02:37:23 PDT 2001
+-removed an #include <stdint.h> that was only breaking libc5 builds
+
 a52dec-0.7.1 Thu Aug 30 02:13:23 PDT 2001
 -gcc 3.0 fixes
 -mlib fixes (now passes the test suite)

@@ -117,6 +117,10 @@ SOURCE=..\libao\audio_out_wav.c
 # End Source File
 # Begin Source File
 
+SOURCE=..\libao\audio_out_win.c
+# End Source File
+# Begin Source File
+
 SOURCE=..\libao\float2s16.c
 # End Source File
 # End Group

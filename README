@@ -77,6 +77,12 @@ projects, including:
       *	Ogle (http://www.dtek.chalmers.se/groups/dvd/) - a good DVD
 	player with menu support
 
+      * a52decX (http://homepage1.nifty.com/~toku/software_en.html) -
+	a graphical interface for a52dec in macintosh osX.
+
+      * bd4go (http://denisx.dyndns.org/bd4go/) - another graphical
+	interface for macintosh osX.
+
       *	OMS (http://www.linuxvideo.org/oms/)
 
       *	XMPS (http://xmps.sourceforge.net/)
@@ -117,15 +123,8 @@ There are several places where we could easily use some help:
 
 REFERENCES
 
-The A/52 standard is publically available at these locations:
-
-      *	http://www.atsc.org/standards/a_52a.pdf - The main part of the
-	standard, as published by the ATSC.
-
-      *	http://www.dolby.com/tech/ATSC_err.pdf - A list of erratas in
-	the ATSC standard, published by Dolby. It applies to the
-	previous revision of the standard (A/52 not A/52a), but some
-	erratas have not been fixed in the updated standard yet !
+The A/52 standard, as published by the ATSC, is available at
+http://www.atsc.org/standards/a_52a.pdf
 
 
 CVS SNAPSHOTS

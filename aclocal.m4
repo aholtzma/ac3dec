@@ -1,6 +1,6 @@
-dnl aclocal.m4 generated automatically by aclocal 1.4-p4
+dnl aclocal.m4 generated automatically by aclocal 1.4-p5
 
-dnl Copyright (C) 1994, 1995-8, 1999 Free Software Foundation, Inc.
+dnl Copyright (C) 1994, 1995-8, 1999, 2001 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -9,6 +9,43 @@ dnl This program is distributed in the hope that it will be useful,
 dnl but WITHOUT ANY WARRANTY, to the extent permitted by law; without
 dnl even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 dnl PARTICULAR PURPOSE.
+
+dnl AC_C_RESTRICT
+dnl Do nothing if the compiler accepts the restrict keyword.
+dnl Otherwise define restrict to __restrict__ or __restrict if one of
+dnl those work, otherwise define restrict to be empty.
+AC_DEFUN([AC_C_RESTRICT],
+    [AC_MSG_CHECKING([for restrict])
+    ac_cv_c_restrict=no
+    for ac_kw in restrict __restrict__ __restrict; do
+	AC_TRY_COMPILE([],[char * $ac_kw p;],[ac_cv_c_restrict=$ac_kw; break])
+    done
+    AC_MSG_RESULT([$ac_cv_c_restrict])
+    case $ac_cv_c_restrict in
+	restrict) ;;
+	no)	AC_DEFINE([restrict],,
+		    [Define as `__restrict' if that's what the C compiler calls
+		    it, or to nothing if it is not supported.]) ;;
+	*)	AC_DEFINE_UNQUOTED([restrict],$ac_cv_c_restrict) ;;
+    esac])
+
+dnl AC_C_ALWAYS_INLINE
+dnl Define inline to something appropriate, including the new always_inline
+dnl attribute from gcc 3.1
+AC_DEFUN([AC_C_ALWAYS_INLINE],
+    [AC_C_INLINE
+    if test x"$GCC" = x"yes" -a x"$ac_cv_c_inline" = x"inline"; then
+	AC_MSG_CHECKING([for always_inline])
+	SAVE_CFLAGS="$CFLAGS"
+	CFLAGS="$CFLAGS -Wall -Werror"
+	AC_TRY_COMPILE([],[__attribute__ ((__always_inline__)) void f (void);],
+	    [ac_cv_always_inline=yes],[ac_cv_always_inline=no])
+	CFLAGS="$SAVE_CFLAGS"
+	AC_MSG_RESULT([$ac_cv_always_inline])
+	if test x"$ac_cv_always_inline" = x"yes"; then
+	    AC_DEFINE_UNQUOTED([inline],[__attribute__ ((__always_inline__))])
+	fi
+    fi])
 
 dnl AC_C_ATTRIBUTE_ALIGNED
 dnl define ATTRIBUTE_ALIGNED_MAX to the maximum alignment if this is supported
@@ -45,7 +82,8 @@ AC_DEFUN([AC_TRY_CFLAGS],
 dnl AC_CHECK_GENERATE_INTTYPES_H (INCLUDE-DIRECTORY)
 dnl generate a default inttypes.h if the header file does not exist already
 AC_DEFUN([AC_CHECK_GENERATE_INTTYPES],
-    [AC_CHECK_HEADER([inttypes.h],[],
+    [rm -f $1/inttypes.h
+    AC_CHECK_HEADER([inttypes.h],[],
 	[AC_CHECK_SIZEOF([char])
 	AC_CHECK_SIZEOF([short])
 	AC_CHECK_SIZEOF([int])
@@ -89,7 +127,7 @@ EOF
 dnl Usage:
 dnl AM_INIT_AUTOMAKE(package,version, [no-define])
 
-AC_DEFUN(AM_INIT_AUTOMAKE,
+AC_DEFUN([AM_INIT_AUTOMAKE],
 [AC_REQUIRE([AC_PROG_INSTALL])
 PACKAGE=[$1]
 AC_SUBST(PACKAGE)
@@ -117,7 +155,7 @@ AC_REQUIRE([AC_PROG_MAKE_SET])])
 # Check to make sure that the build environment is sane.
 #
 
-AC_DEFUN(AM_SANITY_CHECK,
+AC_DEFUN([AM_SANITY_CHECK],
 [AC_MSG_CHECKING([whether build environment is sane])
 # Just in case
 sleep 1
@@ -158,7 +196,7 @@ AC_MSG_RESULT(yes)])
 
 dnl AM_MISSING_PROG(NAME, PROGRAM, DIRECTORY)
 dnl The program must properly implement --version.
-AC_DEFUN(AM_MISSING_PROG,
+AC_DEFUN([AM_MISSING_PROG],
 [AC_MSG_CHECKING(for working $2)
 # Run test in a subshell; some versions of sh will print an error if
 # an executable is not found, even if stderr is redirected.
@@ -174,7 +212,7 @@ AC_SUBST($1)])
 
 # Like AC_CONFIG_HEADER, but automatically create stamp file.
 
-AC_DEFUN(AM_CONFIG_HEADER,
+AC_DEFUN([AM_CONFIG_HEADER],
 [AC_PREREQ([2.12])
 AC_CONFIG_HEADER([$1])
 dnl When config.status generates a header, we must update the stamp-h file.
@@ -200,7 +238,7 @@ changequote([,]))])
 
 # serial 1
 
-AC_DEFUN(AM_MAINTAINER_MODE,
+AC_DEFUN([AM_MAINTAINER_MODE],
 [AC_MSG_CHECKING([whether to enable maintainer-specific portions of Makefiles])
   dnl maintainer-mode is disabled by default
   AC_ARG_ENABLE(maintainer-mode,
@@ -217,7 +255,7 @@ AC_DEFUN(AM_MAINTAINER_MODE,
 
 # Define a conditional.
 
-AC_DEFUN(AM_CONDITIONAL,
+AC_DEFUN([AM_CONDITIONAL],
 [AC_SUBST($1_TRUE)
 AC_SUBST($1_FALSE)
 if $2; then

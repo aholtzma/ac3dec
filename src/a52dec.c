@@ -28,19 +28,18 @@
 #include <string.h>
 #include <errno.h>
 #include <getopt.h>
+#include <math.h>
+#include <signal.h>
 #ifdef HAVE_IO_H
 #include <fcntl.h>
 #include <io.h>
-#endif
-#ifdef HAVE_SYS_TIME_H
-#include <sys/time.h>
-#include <signal.h>
 #endif
 #include <inttypes.h>
 
 #include "a52.h"
 #include "audio_out.h"
 #include "mm_accel.h"
+#include "gettimeofday.h"
 
 #define BUFFER_SIZE 4096
 static uint8_t buffer[BUFFER_SIZE];
@@ -49,11 +48,13 @@ static int demux_track = 0;
 static int demux_pid = 0;
 static int disable_accel = 0;
 static int disable_dynrng = 0;
+static int disable_adjust = 0;
+static sample_t gain = 1;
 static ao_open_t * output_open = NULL;
 static ao_instance_t * output;
 static a52_state_t * state;
 
-#ifdef HAVE_SYS_TIME_H
+#ifdef HAVE_GETTIMEOFDAY
 
 static void print_fps (int final);
 
@@ -64,14 +65,15 @@ static RETSIGTYPE signal_handler (int sig)
     raise (sig);
 }
 
-static void print_fps (int final) 
+static void print_fps (int final)
 {
     static uint32_t frame_counter = 0;
     static struct timeval tv_beg, tv_start;
     static int total_elapsed;
     static int last_count = 0;
     struct timeval tv_end;
-    int fps, tfps, frames, elapsed;
+    float fps, tfps;
+    int frames, elapsed;
 
     gettimeofday (&tv_end, NULL);
 
@@ -86,15 +88,13 @@ static void print_fps (int final)
 	(tv_end.tv_usec - tv_start.tv_usec) / 10000;
 
     if (final) {
-	if (total_elapsed) 
-	    tfps = frame_counter * 10000 / total_elapsed;
+	if (total_elapsed)
+	    tfps = frame_counter * 100.0 / total_elapsed;
 	else
 	    tfps = 0;
 
-	fprintf (stderr,"\n%d frames decoded in %d.%02d "
-		 "seconds (%d.%02d fps)\n", frame_counter,
-		 total_elapsed / 100, total_elapsed % 100,
-		 tfps / 100, tfps % 100);
+	fprintf (stderr,"\n%d frames decoded in %.2f seconds (%.2f fps)\n",
+		 frame_counter, total_elapsed / 100.0, tfps);
 
 	return;
     }
@@ -107,19 +107,17 @@ static void print_fps (int final)
     tv_beg = tv_end;
     frames = frame_counter - last_count;
 
-    fps = frames * 10000 / elapsed;			/* 100x */
-    tfps = frame_counter * 10000 / total_elapsed;	/* 100x */
+    fps = frames * 100.0 / elapsed;
+    tfps = frame_counter * 100.0 / total_elapsed;
 
-    fprintf (stderr, "%d frames in %d.%02d sec (%d.%02d fps), "
-	     "%d last %d.%02d sec (%d.%02d fps)\033[K\r", frame_counter,
-	     total_elapsed / 100, total_elapsed % 100,
-	     tfps / 100, tfps % 100, frames, elapsed / 100, elapsed % 100,
-	     fps / 100, fps % 100);
+    fprintf (stderr, "%d frames in %.2f sec (%.2f fps), "
+	     "%d last %.2f sec (%.2f fps)\033[K\r", frame_counter,
+	     total_elapsed / 100.0, tfps, frames, elapsed / 100.0, fps);
 
     last_count = frame_counter;
 }
 
-#else /* !HAVE_SYS_TIME_H */
+#else /* !HAVE_GETTIMEOFDAY */
 
 static void print_fps (int final)
 {
@@ -133,11 +131,14 @@ static void print_usage (char ** argv)
     ao_driver_t * drivers;
 
     fprintf (stderr, "usage: "
-	     "%s [-o <mode>] [-s [<track>]] [-t <pid>] [-c] [-r] <file>\n"
+	     "%s [-o <mode>] [-s [<track>]] [-t <pid>] [-c] [-r] [-a] \\\n"
+	     "\t\t[-g <gain>] <file>\n"
 	     "\t-s\tuse program stream demultiplexer, track 0-7 or 0x80-0x87\n"
 	     "\t-t\tuse transport stream demultiplexer, pid 0x10-0x1ffe\n"
 	     "\t-c\tuse c implementation, disables all accelerations\n"
 	     "\t-r\tdisable dynamic range compression\n"
+	     "\t-a\tdisable level adjustment based on output mode\n"
+	     "\t-g\tadd specified gain in decibels, -96.0 to +96.0\n"
 	     "\t-o\taudio output mode\n", argv[0]);
 
     drivers = ao_drivers ();
@@ -155,7 +156,7 @@ static void handle_args (int argc, char ** argv)
     char * s;
 
     drivers = ao_drivers ();
-    while ((c = getopt (argc, argv, "s::t:cro:")) != -1)
+    while ((c = getopt (argc, argv, "s::t:crag:o:")) != -1)
 	switch (c) {
 	case 'o':
 	    for (i = 0; drivers[i].name != NULL; i++)
@@ -196,6 +197,19 @@ static void handle_args (int argc, char ** argv)
 	    disable_dynrng = 1;
 	    break;
 
+	case 'a':
+	    disable_adjust = 1;
+	    break;
+
+	case 'g':
+	    gain = strtod (optarg, &s);
+	    if ((gain < -96) || (gain > 96) || (*s)) {
+		fprintf (stderr, "Invalid gain: %s\n", optarg);
+		print_usage (argv);
+	    }
+	    gain = pow (2, gain / 6);
+	    break;
+
 	default:
 	    print_usage (argv);
 	}
@@ -207,7 +221,7 @@ static void handle_args (int argc, char ** argv)
     if (optind < argc) {
 	in_file = fopen (argv[optind], "rb");
 	if (!in_file) {
-	    fprintf (stderr, "%s - couldnt open file %s\n", strerror (errno),
+	    fprintf (stderr, "%s - could not open file %s\n", strerror (errno),
 		     argv[optind]);
 	    exit (1);
 	}
@@ -259,7 +273,9 @@ void a52_decode_data (uint8_t * start, uint8_t * end)
 
 		if (ao_setup (output, sample_rate, &flags, &level, &bias))
 		    goto error;
-		flags |= A52_ADJUST_LEVEL;
+		if (!disable_adjust)
+		    flags |= A52_ADJUST_LEVEL;
+		level *= gain;
 		if (a52_frame (state, buf, &flags, &level, bias))
 		    goto error;
 		if (disable_dynrng)
@@ -583,7 +599,7 @@ int main (int argc, char ** argv)
 	es_loop ();
 
     a52_free (state);
-    ao_close (output);
     print_fps (1);
+    ao_close (output);
     return 0;
 }

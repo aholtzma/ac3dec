@@ -20,3 +20,5 @@ changes that affected the PCM output:
 2001/07/26 21:31:39 - do 3dB dither reduction in coeff_get() not dither_gen()
 
 2001/08/09 08:11:31 - implemented dynamic range compression
+
+2002/02/24 08:54:49 - window function computed at runtime, with more precision

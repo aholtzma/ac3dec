@@ -33,8 +33,8 @@ typedef struct null_instance_s {
     int channels;
 } null_instance_t;
 
-int null_setup (ao_instance_t * _instance, int sample_rate, int * flags,
-		sample_t * level, sample_t * bias)
+static int null_setup (ao_instance_t * _instance, int sample_rate, int * flags,
+		       sample_t * level, sample_t * bias)
 {
     null_instance_t * instance = (null_instance_t *) _instance;
 
@@ -45,12 +45,12 @@ int null_setup (ao_instance_t * _instance, int sample_rate, int * flags,
     return 0;
 }
 
-int null_play (ao_instance_t * instance, int flags, sample_t * samples)
+static int null_play (ao_instance_t * instance, int flags, sample_t * samples)
 {
     return 0;
 }
 
-void null_close (ao_instance_t * instance)
+static void null_close (ao_instance_t * instance)
 {
 }
 

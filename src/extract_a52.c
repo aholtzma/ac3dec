@@ -28,6 +28,10 @@
 #include <string.h>
 #include <errno.h>
 #include <getopt.h>
+#ifdef HAVE_IO_H
+#include <fcntl.h>
+#include <io.h>
+#endif
 #include <inttypes.h>
 
 #define BUFFER_SIZE 4096
@@ -78,7 +82,7 @@ static void handle_args (int argc, char ** argv)
     if (optind < argc) {
 	in_file = fopen (argv[optind], "rb");
 	if (!in_file) {
-	    fprintf (stderr, "%s - couldnt open file %s\n", strerror (errno),
+	    fprintf (stderr, "%s - could not open file %s\n", strerror (errno),
 		     argv[optind]);
 	    exit (1);
 	}
@@ -343,6 +347,10 @@ static void ts_loop (void)
 
 int main (int argc, char ** argv)
 {
+#ifdef HAVE_IO_H
+    setmode (fileno (stdout), O_BINARY);
+#endif
+
     handle_args (argc, argv);
 
     if (demux_pid)

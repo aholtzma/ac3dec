@@ -3,7 +3,7 @@
 extract_a52 \- extract ATSC A/52 audio from a MPEG stream.
 .SH SYNOPSIS
 .B extract_a52
-[\fI-h\fR] [\fI-s [track]\fR] \fI[file]\fR
+[\fI-h\fR] [\fI-s [track]\fR] [\fI-t pid\fR] [\fIfile\fR]
 .SH DESCRIPTION
 `extract_a52' extracts ATSC A/52 audio from a MPEG stream.
 Input is from stdin if no file is given.
@@ -13,6 +13,9 @@ display help
 .TP
 \fB\-s track\fR
 set track number (0-7 or 0x80-0x87)
+.TP
+\fB\-t pid\fR
+use transport stream demultiplexer, pid 0x10-0x1ffe
 .SH AUTHORS
 Michel Lespinasse <walken@zoy.org>
 .br

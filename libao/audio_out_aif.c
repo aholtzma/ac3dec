@@ -47,8 +47,8 @@ static uint8_t aif_header[] = {
     'S', 'S', 'N', 'D', 0xff, 0xff, 0xff, 0xd8, 0, 0, 0, 0, 0, 0, 0, 0
 };
 
-int aif_setup (ao_instance_t * _instance, int sample_rate, int * flags,
-	       sample_t * level, sample_t * bias)
+static int aif_setup (ao_instance_t * _instance, int sample_rate, int * flags,
+		      sample_t * level, sample_t * bias)
 {
     aif_instance_t * instance = (aif_instance_t *) _instance;
 
@@ -77,7 +77,7 @@ static void store2 (uint8_t * buf, int16_t value)
     buf[1] = value;
 }
 
-int aif_play (ao_instance_t * _instance, int flags, sample_t * _samples)
+static int aif_play (ao_instance_t * _instance, int flags, sample_t * _samples)
 {
     aif_instance_t * instance = (aif_instance_t *) _instance;
     int16_t int16_samples[256*2];
@@ -107,7 +107,7 @@ int aif_play (ao_instance_t * _instance, int flags, sample_t * _samples)
     return 0;
 }
 
-void aif_close (ao_instance_t * _instance)
+static void aif_close (ao_instance_t * _instance)
 {
     aif_instance_t * instance = (aif_instance_t *) _instance;
 
@@ -120,7 +120,7 @@ void aif_close (ao_instance_t * _instance)
     fwrite (aif_header, sizeof (aif_header), 1, stdout);
 }
 
-ao_instance_t * aif_open (int flags)
+static ao_instance_t * aif_open (int flags)
 {
     aif_instance_t * instance;
 

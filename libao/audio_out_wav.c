@@ -47,8 +47,8 @@ static uint8_t wav_header[] = {
     'd', 'a', 't', 'a', 0xd8, 0xff, 0xff, 0xff
 };
 
-int wav_setup (ao_instance_t * _instance, int sample_rate, int * flags,
-		   sample_t * level, sample_t * bias)
+static int wav_setup (ao_instance_t * _instance, int sample_rate, int * flags,
+		      sample_t * level, sample_t * bias)
 {
     wav_instance_t * instance = (wav_instance_t *) _instance;
 
@@ -71,7 +71,7 @@ static void store (uint8_t * buf, int value)
     buf[3] = value >> 24;
 }
 
-int wav_play (ao_instance_t * _instance, int flags, sample_t * _samples)
+static int wav_play (ao_instance_t * _instance, int flags, sample_t * _samples)
 {
     wav_instance_t * instance = (wav_instance_t *) _instance;
     int16_t int16_samples[256*2];
@@ -102,7 +102,7 @@ int wav_play (ao_instance_t * _instance, int flags, sample_t * _samples)
     return 0;
 }
 
-void wav_close (ao_instance_t * _instance)
+static void wav_close (ao_instance_t * _instance)
 {
     wav_instance_t * instance = (wav_instance_t *) _instance;
 
@@ -114,7 +114,7 @@ void wav_close (ao_instance_t * _instance)
     fwrite (wav_header, sizeof (wav_header), 1, stdout);
 }
 
-ao_instance_t * wav_open (int flags)
+static ao_instance_t * wav_open (int flags)
 {
     wav_instance_t * instance;
 

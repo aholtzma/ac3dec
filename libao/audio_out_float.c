@@ -29,8 +29,8 @@
 #include "a52.h"
 #include "audio_out.h"
 
-int float_setup (ao_instance_t * instance, int sample_rate, int * flags,
-		 sample_t * level, sample_t * bias)
+static int float_setup (ao_instance_t * instance, int sample_rate, int * flags,
+			sample_t * level, sample_t * bias)
 {
     *flags = A52_STEREO;
     *level = 1;
@@ -39,7 +39,8 @@ int float_setup (ao_instance_t * instance, int sample_rate, int * flags,
     return 0;
 }
 
-int float_play (ao_instance_t * instance, int flags, sample_t * _samples)
+static int float_play (ao_instance_t * instance, int flags,
+		       sample_t * _samples)
 {
 #ifdef LIBA52_DOUBLE
     float samples[256 * 2];
@@ -56,7 +57,7 @@ int float_play (ao_instance_t * instance, int flags, sample_t * _samples)
     return 0;
 }
 
-void float_close (ao_instance_t * instance)
+static void float_close (ao_instance_t * instance)
 {
 }
 

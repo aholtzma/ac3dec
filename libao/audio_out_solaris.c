@@ -45,8 +45,8 @@ typedef struct solaris_instance_s {
     int flags;
 } solaris_instance_t;
 
-int solaris_setup (ao_instance_t * _instance, int sample_rate, int * flags,
-		   sample_t * level, sample_t * bias)
+static int solaris_setup (ao_instance_t * _instance, int sample_rate,
+			  int * flags, sample_t * level, sample_t * bias)
 {
     solaris_instance_t * instance = (solaris_instance_t *) _instance;
 
@@ -61,7 +61,8 @@ int solaris_setup (ao_instance_t * _instance, int sample_rate, int * flags,
     return 0;
 }
 
-int solaris_play (ao_instance_t * _instance, int flags, sample_t * _samples)
+static int solaris_play (ao_instance_t * _instance, int flags,
+			 sample_t * _samples)
 {
     solaris_instance_t * instance = (solaris_instance_t *) _instance;
     int16_t int16_samples[256*2];
@@ -120,14 +121,14 @@ int solaris_play (ao_instance_t * _instance, int flags, sample_t * _samples)
     return 0;
 }
 
-void solaris_close (ao_instance_t * _instance)
+static void solaris_close (ao_instance_t * _instance)
 {
     solaris_instance_t * instance = (solaris_instance_t *) _instance;
 
     close (instance->fd);
 }
 
-ao_instance_t * solaris_open (int flags)
+static ao_instance_t * solaris_open (int flags)
 {
     solaris_instance_t * instance;
 

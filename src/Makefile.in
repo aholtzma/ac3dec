@@ -1,6 +1,6 @@
-# Makefile.in generated automatically by automake 1.4-p4 from Makefile.am
+# Makefile.in generated automatically by automake 1.4-p5 from Makefile.am
 
-# Copyright (C) 1994, 1995-8, 1999 Free Software Foundation, Inc.
+# Copyright (C) 1994, 1995-8, 1999, 2001 Free Software Foundation, Inc.
 # This Makefile.in is free software; the Free Software Foundation
 # gives unlimited permission to copy and/or distribute it,
 # with or without modifications, as long as this notice is preserved.
@@ -76,17 +76,17 @@ RANLIB = @RANLIB@
 STRIP = @STRIP@
 VERSION = @VERSION@
 
-CFLAGS = @CFLAGS@ @A52DEC_CFLAGS@
+CFLAGS = @A52DEC_CFLAGS@
 
 bin_PROGRAMS = a52dec extract_a52
-a52dec_SOURCES = a52dec.c getopt.c
+a52dec_SOURCES = a52dec.c getopt.c gettimeofday.c
 a52dec_LDADD = $(top_builddir)/liba52/liba52.la 	       $(top_builddir)/libao/libao.a @LIBAO_LIBS@
 
 extract_a52_SOURCES = extract_a52.c getopt.c
 
 man_MANS = a52dec.1 extract_a52.1
 
-EXTRA_DIST = configure.incl getopt.h $(man_MANS)
+EXTRA_DIST = configure.incl getopt.h gettimeofday.h $(man_MANS)
 mkinstalldirs = $(SHELL) $(top_srcdir)/autotools/mkinstalldirs
 CONFIG_HEADER = ../include/config.h
 CONFIG_CLEAN_FILES = 
@@ -98,7 +98,8 @@ DEFS = @DEFS@ -I. -I$(srcdir) -I../include
 CPPFLAGS = @CPPFLAGS@
 LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
-a52dec_OBJECTS =  a52dec.$(OBJEXT) getopt.$(OBJEXT)
+a52dec_OBJECTS =  a52dec.$(OBJEXT) getopt.$(OBJEXT) \
+gettimeofday.$(OBJEXT)
 a52dec_DEPENDENCIES =  $(top_builddir)/liba52/liba52.la \
 $(top_builddir)/libao/libao.a
 a52dec_LDFLAGS = 
@@ -269,7 +270,7 @@ TAGS:  $(HEADERS) $(SOURCES)  $(TAGS_DEPENDENCIES) $(LISP)
 	  awk '    { files[$$0] = 1; } \
 	       END { for (i in files) print i; }'`; \
 	test -z "$(ETAGS_ARGS)$$unique$(LISP)$$tags" \
-	  || (cd $(srcdir) && etags $(ETAGS_ARGS) $$tags  $$unique $(LISP) -o $$here/TAGS)
+	  || (cd $(srcdir) && etags -o $$here/TAGS $(ETAGS_ARGS) $$tags  $$unique $(LISP))
 
 mostlyclean-tags:
 
@@ -296,9 +297,10 @@ distdir: $(DISTFILES)
 	  fi; \
 	done
 a52dec.o: a52dec.c ../include/config.h getopt.h ../include/a52.h \
-	../include/audio_out.h ../include/mm_accel.h
+	../include/audio_out.h ../include/mm_accel.h gettimeofday.h
 extract_a52.o: extract_a52.c ../include/config.h getopt.h
 getopt.o: getopt.c ../include/config.h
+gettimeofday.o: gettimeofday.c ../include/config.h gettimeofday.h
 
 info-am:
 info: info-am

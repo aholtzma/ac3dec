@@ -69,10 +69,10 @@ void downmix(bsi_t* bsi, stream_samples_t* stream_sample)
 
 				for (j = 0; j < 256; j++) 
 				{
-					right_tmp = 0.2265 * *left_sur++ + 0.2265 * *right_sur++;
+					right_tmp = 0.2265f * *left_sur++ + 0.2265f * *right_sur++;
 					left_tmp  = -1 * right_tmp;
-					right_tmp += 0.3204 * *right++ + 0.2265 * *centre;
-					left_tmp  += 0.3204 * *left++  + 0.2265 * *centre++;
+					right_tmp += 0.3204f * *right++ + 0.2265f * *centre;
+					left_tmp  += 0.3204f * *left++  + 0.2265f * *centre++;
 
 					stream_sample->channel[1][j] = right_tmp;
 					stream_sample->channel[0][j] = left_tmp;
@@ -89,10 +89,10 @@ void downmix(bsi_t* bsi, stream_samples_t* stream_sample)
 
 				for (j = 0; j < 256; j++) 
 				{
-					right_tmp = 0.2265 * *left_sur++ + 0.2265 * *right_sur++;
+					right_tmp = 0.2265f * *left_sur++ + 0.2265f * *right_sur++;
 					left_tmp  = -1 * right_tmp;
-					right_tmp += 0.3204 * *right++;
-					left_tmp  += 0.3204 * *left++ ;
+					right_tmp += 0.3204f * *right++;
+					left_tmp  += 0.3204f * *left++ ;
 
 					stream_sample->channel[1][j] = right_tmp;
 					stream_sample->channel[0][j] = left_tmp;
@@ -109,10 +109,10 @@ void downmix(bsi_t* bsi, stream_samples_t* stream_sample)
 
 				for (j = 0; j < 256; j++) 
 				{
-					right_tmp =  0.2265 * *right_sur++;
-					left_tmp  = -1 * right_tmp;
-					right_tmp += 0.3204 * *right++ + 0.2265 * *centre;
-					left_tmp  += 0.3204 * *left++  + 0.2265 * *centre++;
+					right_tmp =  0.2265f * *right_sur++;
+					left_tmp  = - right_tmp;
+					right_tmp += 0.3204f * *right++ + 0.2265f * *centre;
+					left_tmp  += 0.3204f * *left++  + 0.2265f * *centre++;
 
 					stream_sample->channel[1][j] = right_tmp;
 					stream_sample->channel[0][j] = left_tmp;
@@ -128,10 +128,10 @@ void downmix(bsi_t* bsi, stream_samples_t* stream_sample)
 
 				for (j = 0; j < 256; j++) 
 				{
-					right_tmp =  0.2265 * *right_sur++;
-					left_tmp  = -1 * right_tmp;
-					right_tmp += 0.3204 * *right++; 
-					left_tmp  += 0.3204 * *left++;
+					right_tmp =  0.2265f * *right_sur++;
+					left_tmp  = - right_tmp;
+					right_tmp += 0.3204f * *right++; 
+					left_tmp  += 0.3204f * *left++;
 
 					stream_sample->channel[1][j] = right_tmp;
 					stream_sample->channel[0][j] = left_tmp;
@@ -146,8 +146,8 @@ void downmix(bsi_t* bsi, stream_samples_t* stream_sample)
 
 				for (j = 0; j < 256; j++) 
 				{
-					right_tmp = 0.3204 * *right++ + 0.2265 * *centre;
-					left_tmp  = 0.3204 * *left++  + 0.2265 * *centre++;
+					right_tmp = 0.3204f * *right++ + 0.2265f * *centre;
+					left_tmp  = 0.3204f * *left++  + 0.2265f * *centre++;
 
 					stream_sample->channel[1][j] = right_tmp;
 					stream_sample->channel[0][j] = left_tmp;
@@ -166,7 +166,7 @@ void downmix(bsi_t* bsi, stream_samples_t* stream_sample)
 
 				for (j = 0; j < 256; j++) 
 				{
-					right_tmp = 0.7071 * *right++;
+					right_tmp = 0.7071f * *right++;
 
 					stream_sample->channel[1][j] = right_tmp;
 					stream_sample->channel[0][j] = right_tmp;
@@ -181,7 +181,7 @@ void downmix(bsi_t* bsi, stream_samples_t* stream_sample)
 
 				for (j = 0; j < 256; j++) 
 				{
-					right_tmp = 0.7071 * *right++;
+					right_tmp = 0.7071f * *right++;
 
 					stream_sample->channel[1][j] = right_tmp;
 					stream_sample->channel[0][j] = right_tmp;
@@ -207,8 +207,8 @@ void downmix(bsi_t* bsi, stream_samples_t* stream_sample)
 
 				for (j = 0; j < 256; j++) 
 				{
-					right_tmp= 0.4142 * *right++ + clev * *centre   + slev * *right_sur++;
-					left_tmp = 0.4142 * *left++  + clev * *centre++ + slev * *left_sur++;
+					right_tmp= 0.4142f * *right++ + clev * *centre   + slev * *right_sur++;
+					left_tmp = 0.4142f * *left++  + clev * *centre++ + slev * *left_sur++;
 
 					stream_sample->channel[1][j] = right_tmp;
 					stream_sample->channel[0][j] = left_tmp;
@@ -227,8 +227,8 @@ void downmix(bsi_t* bsi, stream_samples_t* stream_sample)
 
 				for (j = 0; j < 256; j++) 
 				{
-					right_tmp= 0.4142 * *right++ + slev * *right_sur++;
-					left_tmp = 0.4142 * *left++  + slev * *left_sur++;
+					right_tmp= 0.4142f * *right++ + slev * *right_sur++;
+					left_tmp = 0.4142f * *left++  + slev * *left_sur++;
 
 					stream_sample->channel[1][j] = right_tmp;
 					stream_sample->channel[0][j] = left_tmp;
@@ -247,8 +247,8 @@ void downmix(bsi_t* bsi, stream_samples_t* stream_sample)
 
 				for (j = 0; j < 256; j++) 
 				{
-					right_tmp= 0.4142 * *right++ + clev * *centre   + slev * *right_sur;
-					left_tmp = 0.4142 * *left++  + clev * *centre++ + slev * *right_sur++;
+					right_tmp= 0.4142f * *right++ + clev * *centre   + slev * *right_sur;
+					left_tmp = 0.4142f * *left++  + clev * *centre++ + slev * *right_sur++;
 
 					stream_sample->channel[1][j] = right_tmp;
 					stream_sample->channel[0][j] = left_tmp;
@@ -267,8 +267,8 @@ void downmix(bsi_t* bsi, stream_samples_t* stream_sample)
 
 				for (j = 0; j < 256; j++) 
 				{
-					right_tmp= 0.4142 * *right++ + slev * *right_sur;
-					left_tmp = 0.4142 * *left++  + slev * *right_sur++;
+					right_tmp= 0.4142f * *right++ + slev * *right_sur;
+					left_tmp = 0.4142f * *left++  + slev * *right_sur++;
 
 					stream_sample->channel[1][j] = right_tmp;
 					stream_sample->channel[0][j] = left_tmp;
@@ -284,8 +284,8 @@ void downmix(bsi_t* bsi, stream_samples_t* stream_sample)
 
 				for (j = 0; j < 256; j++) 
 				{
-					right_tmp= 0.4142 * *right++ + clev * *centre;   
-					left_tmp = 0.4142 * *left++  + clev * *centre++; 
+					right_tmp= 0.4142f * *right++ + clev * *centre;   
+					left_tmp = 0.4142f * *left++  + clev * *centre++; 
 
 					stream_sample->channel[1][j] = right_tmp;
 					stream_sample->channel[0][j] = left_tmp;
@@ -304,7 +304,7 @@ void downmix(bsi_t* bsi, stream_samples_t* stream_sample)
 
 				for (j = 0; j < 256; j++) 
 				{
-					right_tmp = 0.7071 * *right++;
+					right_tmp = 0.7071f * *right++;
 
 					stream_sample->channel[1][j] = right_tmp;
 					stream_sample->channel[0][j] = right_tmp;
@@ -319,7 +319,7 @@ void downmix(bsi_t* bsi, stream_samples_t* stream_sample)
 
 				for (j = 0; j < 256; j++) 
 				{
-					right_tmp = 0.7071 * *right++;
+					right_tmp = 0.7071f * *right++;
 
 					stream_sample->channel[1][j] = right_tmp;
 					stream_sample->channel[0][j] = right_tmp;

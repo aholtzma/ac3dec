@@ -92,13 +92,9 @@ int main(int argc,char *argv[])
 			bitstream_get(bs,1);
 
 		if(!crc_validate())
-		{
-			printf("(crc) CRC check failed on frame %ld\n",frame_count);
-		}
+			printf("(crc) CRC check failed on frame %d\n",frame_count);
 		else
-		{
 			dprintf("(crc) CRC check passed\n");
-		}
 
 
 		if(bitstream_done(bs))
@@ -127,8 +123,8 @@ void decode_find_sync(bitstream_t *bs)
 		sync_word |= bitstream_get(bs,1);
 		i++;
 	}
-	dprintf("(sync) %ld bits skipped to synchronize\n",i);
-	dprintf("(sync) begin frame %ld\n",frame_count);
+	dprintf("(sync) %d bits skipped to synchronize\n",i);
+	dprintf("(sync) begin frame %d\n",frame_count);
 	frame_count++;
 
 	bs->total_bits_read = 16;

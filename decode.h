@@ -29,7 +29,7 @@ typedef struct stream_coeffs_s
 
 typedef struct stream_samples_s
 {
-	float channel[6][512];
+	float channel[6][256];
 } stream_samples_t;
 
 #define DECODE_MAGIC_NUMBER 0xdeadbeef

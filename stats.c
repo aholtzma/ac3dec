@@ -23,12 +23,12 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include "config.h"
 #include "ac3.h"
 #include "decode.h"
 #include "stats.h"
 #include "debug.h"
 
-/* Misc LUTs that will go elsewhere soon */
 
 static char *service_ids[] = {"CM","ME","VI","HI","D","C","E","VO"};
 
@@ -38,14 +38,86 @@ struct mixlev_s
 	char *desc;
 };
 
-struct mixlev_s cmixlev_tbl[4] =  {{0.707, "(-3.0 dB)"}, {0.596, "(-4.5 dB)"},
+struct mixlev_s cmixlev_tbl[4] =  {{0.707, "(-3.0 dB)"}, {0.595, "(-4.5 dB)"},
                                  {0.500, "(-6.0 dB)"}, {1.0,  "Invalid"}};
 
 struct mixlev_s smixlev_tbl[4] =  {{0.707, "(-3.0 dB)"}, {0.500, "(-6.0 dB)"},
                                    {0.0,   "off    "}, {1.0,   "Invalid"}};
 
+static const char *language[128] = 
+{
+	"unknown", "Albanian", "Breton", "Catalan", "Croatian", "Welsh", "Czech", "Danish", 
+	"German", "English", "Spanish", "Esperanto", "Estonian", "Basque", "Faroese", "French", 
+	"Frisian", "Irish", "Gaelic", "Galician", "Icelandic", "Italian", "Lappish", "Latin", 
+	"Latvian", "Luxembourgian", "Lithuanian", "Hungarian", "Maltese", "Dutch", "Norwegian", "Occitan", 
+	"Polish", "Portugese", "Romanian", "Romansh", "Serbian", "Slovak", "Slovene", "Finnish", 
+	"Swedish", "Turkish", "Flemish", "Walloon", "0x2c", "0x2d", "0x2e", "0x2f", 
+	"0x30", "0x31", "0x32", "0x33", "0x34", "0x35", "0x36", "0x37", 
+	"0x38", "0x39", "0x3a", "0x3b", "0x3c", "0x3d", "0x3e", "0x3f", 
+	"background", "0x41", "0x42", "0x43", "0x44", "Zulu", "Vietnamese", "Uzbek", 
+	"Urdu", "Ukrainian", "Thai", "Telugu", "Tatar", "Tamil", "Tadzhik", "Swahili", 
+	"Sranan Tongo", "Somali", "Sinhalese", "Shona", "Serbo-Croat", "Ruthenian", "Russian", "Quechua", 
+	"Pustu", "Punjabi", "Persian", "Papamiento", "Oriya", "Nepali", "Ndebele", "Marathi", 
+	"Moldavian", "Malaysian", "Malagasay", "Macedonian", "Laotian", "Korean", "Khmer", "Kazakh",
+	"Kannada", "Japanese", "Indonesian", "Hindi", "Hebrew", "Hausa", "Gurani", "Gujurati", 
+	"Greek", "Georgian", "Fulani", "Dari", "Churash", "Chinese", "Burmese", "Bulgarian", 
+	"Bengali", "Belorussian", "Bambora", "Azerbijani", "Assamese", "Armenian", "Arabic", "Amharic"
+};
 
-void stats_printf_syncinfo(syncinfo_t *syncinfo)
+void stats_print_banner(syncinfo_t *syncinfo,bsi_t *bsi)
+{
+	printf(PACKAGE"-"VERSION" (C) 1999 Aaron Holtzman (aholtzma@ess.engr.uvic.ca)\n");
+
+	printf("%d.%d Mode ",bsi->nfchans,bsi->lfeon);
+	switch (syncinfo->fscod)
+	{
+		case 2:
+			printf("32 KHz   ");
+			break;
+		case 1:
+			printf("44.1 KHz ");
+			break;
+		case 0:
+			printf("48 KHz   ");
+			break;
+		default:
+			printf("Invalid sampling rate ");
+			break;
+	}
+	printf("%4d kbps ",syncinfo->bit_rate);
+	if (bsi->langcode && (bsi->langcod < 128))
+		printf("%s ", language[bsi->langcod]);
+
+	switch(bsi->bsmod)
+	{
+		case 0:
+			printf("Complete Main Audio Service");
+			break;
+		case 1:
+			printf("Music and Effects Audio Service");
+		case 2:
+			printf("Visually Impaired Audio Service");
+			break;
+		case 3:
+			printf("Hearing Impaired Audio Service");
+			break;
+		case 4:
+			printf("Dialogue Audio Service");
+			break;
+		case 5:
+			printf("Commentary Audio Service");
+			break;
+		case 6:
+			printf("Emergency Audio Service");
+			break;
+		case 7:
+			printf("Voice Over Audio Service");
+			break;
+	}
+	printf("\n");
+}
+
+void stats_print_syncinfo(syncinfo_t *syncinfo)
 {
 	dprintf("(syncinfo) ");
 	
@@ -70,7 +142,7 @@ void stats_printf_syncinfo(syncinfo_t *syncinfo)
 
 }
 	
-void stats_printf_bsi(bsi_t *bsi)
+void stats_print_bsi(bsi_t *bsi)
 {
 	dprintf("(bsi) ");
 	dprintf("%s",service_ids[bsi->bsmod]);
@@ -85,7 +157,7 @@ void stats_printf_bsi(bsi_t *bsi)
 
 char *exp_strat_tbl[4] = {"R   ","D15 ","D25 ","D45 "};
 
-void stats_printf_audblk(audblk_t *audblk)
+void stats_print_audblk(audblk_t *audblk)
 {
 	dprintf("(audblk) ");
 	dprintf("%s ",audblk->cplinu ? "cpl on " : "cpl off");

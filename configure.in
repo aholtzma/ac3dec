@@ -6,16 +6,20 @@ AC_INIT(decode.c)
 AC_CANONICAL_HOST
 AC_PREREQ(2.13)
 AM_CONFIG_HEADER(config.h)
-AM_INIT_AUTOMAKE(ac3dec, 0.5.4)
+AM_INIT_AUTOMAKE(ac3dec, 0.5.6)
 
 AM_MAINTAINER_MODE
 AC_PROG_CC
 AC_PROG_GCC_TRADITIONAL
 AC_PROG_RANLIB
 
+AC_CHECK_LIB(ossaudio, _oss_ioctl, LIBS="$LIBS -lossaudio")
+
 dnl Figure out which OS we're on and what to do about it
 case "$host" in
 *-linux*) rm -f output.c; ln -s output_linux.c output.c;;
+*-openbsd*) rm -f output.c; ln -s output_linux.c output.c;;
+*-irix*) rm -f output.c; ln -s output_irix.c output.c;;
 *-solaris*) rm -f output.c; ln -s output_solaris.c output.c;;
 *) echo "$host is not currently supported by ac3dec"; exit 1;;
 esac

@@ -34,15 +34,17 @@
                          (((uint_8*)&x)[1] << 16) |  \
                          (((uint_8*)&x)[2] << 8) |   \
                          ((uint_8*)&x)[3])           
+#define SWAP_ENDIAN16(x) ((((uint_8*)&x)[0] << 8) |  \
+                         ((uint_8*)&x)[1])           
 
 
 static void bitstream_load(bitstream_t *bs);
 
 /* Fetches 1-32 bits from the file opened in bitstream_open */
-uint_32
+uint_16
 bitstream_get(bitstream_t *bs,uint_32 num_bits)
 {
-	uint_32 result;
+	uint_16 result;
 	uint_32 bits_read;
 	uint_32 bits_to_go;
 
@@ -52,7 +54,7 @@ bitstream_get(bitstream_t *bs,uint_32 num_bits)
 
 	bits_read = num_bits > bs->bits_left ? bs->bits_left : num_bits; 
 
-	result = bs->current_word  >> (32 - bits_read);
+	result = bs->current_word  >> (16 - bits_read);
 	bs->current_word <<= bits_read;
 	bs->bits_left -= bits_read;
 
@@ -63,13 +65,12 @@ bitstream_get(bitstream_t *bs,uint_32 num_bits)
 	{
 		bits_to_go = num_bits - bits_read;
 		result <<= bits_to_go;
-		result |= bs->current_word  >> (32 - bits_to_go);
+		result |= bs->current_word  >> (16 - bits_to_go);
 		bs->current_word <<= bits_to_go;
 		bs->bits_left -= bits_to_go;
 	}
 	
 	bs->total_bits_read += num_bits;
-	crc_process(result,num_bits);
 	return result;
 }
 
@@ -78,13 +79,12 @@ bitstream_load(bitstream_t *bs)
 {
 	int bytes_read;
 
-	bytes_read = fread(&bs->current_word,1,4,bs->file);
-	bs->current_word = SWAP_ENDIAN32(bs->current_word);
+	bytes_read = fread(&bs->current_word,1,2,bs->file);
+	bs->current_word = SWAP_ENDIAN16(bs->current_word);
 	bs->bits_left = bytes_read * 8;
+	bs->done = !bytes_read;
 
-	//FIXME finishing up the stream isn't done too gracefully
-	if (bytes_read < 4)
-		bs->done = 1;
+	crc_process(bs->current_word);
 }
 
 /* Opens a bitstream for use in bitstream_get */

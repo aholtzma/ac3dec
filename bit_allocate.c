@@ -406,7 +406,7 @@ static void ba_compute_mask(sint_16 start, sint_16 end, uint_16 fscod,
 	}
 	
 	/* Perform delta bit modulation if necessary */
-	if ((deltbae == 0) || (deltbae == 1)) 
+	if ((deltbae == DELTA_BIT_REUSE) || (deltbae == DELTA_BIT_NEW)) 
 	{ 
 		sint_16 band = 0; 
 		sint_16 seg = 0; 

@@ -6,7 +6,7 @@
  */
 
 
-//#define HAVE_TSC
+#define HAVE_TSC
 
 
 #include <stdio.h>

@@ -57,6 +57,6 @@ uint_16 dither_gen(void)
 
 	lfsr_state = state;
 
-	return (((((sint_32)state<<8)>>8) * (sint_32) (0.707106 * 256.0))>>16);
+	return (((((sint_32)state<<8)>>8) * (sint_32) (0.707106f * 256.0f))>>16);
 }
 

@@ -71,8 +71,8 @@ void rematrix(audblk_t *audblk, stream_coeffs_t *coeffs)
 	
 		for(j=start;j < end; j++)
 		{
-			left  = 0.5 * (coeffs->fbw[0][j] + coeffs->fbw[1][j]);
-			right = 0.5 * (coeffs->fbw[0][j] - coeffs->fbw[1][j]);
+			left  = 0.5f * (coeffs->fbw[0][j] + coeffs->fbw[1][j]);
+			right = 0.5f * (coeffs->fbw[0][j] - coeffs->fbw[1][j]);
 			coeffs->fbw[0][j] = left;
 			coeffs->fbw[1][j] = right;
 		}

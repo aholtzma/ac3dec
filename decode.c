@@ -41,12 +41,12 @@
 #include "parse.h"
 #include "output.h"
 #include "crc.h"
+#include "stats.h"
 #include "rematrix.h"
 #include "sys/time.h"
 #include "debug.h"
 
 static void decode_find_sync(bitstream_t *bs);
-static void decode_print_banner(void);
 
 static stream_coeffs_t stream_coeffs;
 static stream_samples_t stream_samples;
@@ -96,7 +96,7 @@ int main(int argc,char *argv[])
 
 		if(!done_banner)
 		{
-			decode_print_banner();
+			stats_print_banner(&syncinfo,&bsi);
 			done_banner = 1;
 		}
 
@@ -184,8 +184,8 @@ void decode_find_sync(bitstream_t *bs)
 		sync_word |= bitstream_get(bs,1);
 		i++;
 	}
-	dprintf("(sync) %ld bits skipped to synchronize\n",i);
-	dprintf("(sync) begin frame %ld\n",frame_count);
+	dprintf("(sync) %d bits skipped to synchronize\n",i);
+	dprintf("(sync) begin frame %d\n",frame_count);
 	frame_count++;
 
 	bs->total_bits_read = 16;
@@ -258,54 +258,3 @@ void decode_sanity_check(void)
 
 	return;
 }	
-
-
-void decode_print_banner(void)
-{
-	printf(PACKAGE"-"VERSION" (C) 1999 Aaron Holtzman (aholtzma@ess.engr.uvic.ca)\n");
-
-	printf("%d.%d Mode ",bsi.nfchans,bsi.lfeon);
-	switch (syncinfo.fscod)
-	{
-		case 2:
-			printf("32 KHz   ");
-			break;
-		case 1:
-			printf("44.1 KHz ");
-			break;
-		case 0:
-			printf("48 KHz   ");
-			break;
-		default:
-			printf("Invalid sampling rate ");
-			break;
-	}
-	printf("%4d kbps ",syncinfo.bit_rate);
-	switch(bsi.bsmod)
-	{
-		case 0:
-			printf("Complete Main Audio Service");
-			break;
-		case 1:
-			printf("Music and Effects Audio Service");
-		case 2:
-			printf("Visually Impaired Audio Service");
-			break;
-		case 3:
-			printf("Hearing Impaired Audio Service");
-			break;
-		case 4:
-			printf("Dialogue Audio Service");
-			break;
-		case 5:
-			printf("Commentary Audio Service");
-			break;
-		case 6:
-			printf("Emergency Audio Service");
-			break;
-		case 7:
-			printf("Voice Over Audio Service");
-			break;
-	}
-	printf("\n");
-}

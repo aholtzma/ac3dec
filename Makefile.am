@@ -15,7 +15,7 @@ noinst_HEADERS = bitstream.h decode.h imdct.h ac3.h stats.h mantissa.h\
 	exponent.h bit_allocate.h uncouple.h output.h parse.h crc.h debug.h\
 	ring_buffer.h matlab.h rematrix.h downmix.h dither.h
 
-EXTRA_ac3dec_SOURCES = output_linux.c output_solaris.c
+EXTRA_ac3dec_SOURCES = output_linux.c output_solaris.c output_irix.c
 
 EXTRA_DIST = README Changelog TODO
 

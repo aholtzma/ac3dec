@@ -97,7 +97,7 @@ parse_syncinfo(syncinfo_t *syncinfo,bitstream_t *bs)
 	syncinfo->bit_rate = frmsizecod_tbl[syncinfo->frmsizecod].bit_rate;
 	syncinfo->frame_size = frmsizecod_tbl[syncinfo->frmsizecod].frm_size[syncinfo->fscod];
 
-	stats_printf_syncinfo(syncinfo);
+	stats_print_syncinfo(syncinfo);
 }
 
 /*
@@ -231,7 +231,7 @@ parse_bsi(bsi_t *bsi,bitstream_t *bs)
 			bsi->addbsi[i] = bitstream_get(bs,8);
 	}
 
-	stats_printf_bsi(bsi);
+	stats_print_bsi(bsi);
 }
 
 /* More pain inducing parsing */
@@ -368,8 +368,13 @@ parse_audblk(bsi_t *bsi,audblk_t *audblk,bitstream_t *bs)
 	{
 		/* Get the coupling channel exponent strategy */
 		audblk->cplexpstr = bitstream_get(bs,2);
-		audblk->ncplgrps = (audblk->cplendmant - audblk->cplstrtmant) / 
+
+		if(audblk->cplexpstr==0) 
+			audblk->ncplgrps = 0;
+		else
+			audblk->ncplgrps = (audblk->cplendmant - audblk->cplstrtmant) / 
 				(3 << (audblk->cplexpstr-1));
+
 	}
 
 	for(i = 0; i < bsi->nfchans; i++)
@@ -539,7 +544,7 @@ parse_audblk(bsi_t *bsi,audblk_t *audblk,bitstream_t *bs)
 		}
 	}
 
-	stats_printf_audblk(audblk);
+	stats_print_audblk(audblk);
 }
 
 void

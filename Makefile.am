@@ -8,10 +8,12 @@ bin_PROGRAMS = ac3dec
 ac3dec_LDADD= -L./libac3 -lac3 -lm 
 
 noinst_HEADERS = output.h
-ac3dec_SOURCES = ac3dec.c output_linux.c
+ac3dec_SOURCES = ac3dec.c output.c
 ac3dec_DEPENDENCIES = libac3/libac3.a
 
-EXTRA_DIST = README Changelog TODO
 
-SUBDIRS = libac3 tools .
+EXTRA_DIST = README Changelog TODO plot_spectrum.m autogen.sh\
+       output_linux.c output_irix.c output_solaris.c
+
+SUBDIRS = libac3 tools test .
 

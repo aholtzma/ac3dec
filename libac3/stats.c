@@ -33,7 +33,11 @@
 #include "debug.h"
 
 
-static char *service_ids[] = {"CM","ME","VI","HI","D","C","E","VO"};
+static const char *service_ids[8] = 
+{
+	"CM","ME","VI","HI",
+	 "D", "C","E", "VO"
+};
 
 struct mixlev_s
 {
@@ -41,11 +45,17 @@ struct mixlev_s
 	char *desc;
 };
 
-struct mixlev_s cmixlev_tbl[4] =  {{0.707, "(-3.0 dB)"}, {0.595, "(-4.5 dB)"},
-                                 {0.500, "(-6.0 dB)"}, {1.0,  "Invalid"}};
+static const struct mixlev_s cmixlev_tbl[4] =  
+{
+	{0.707, "(-3.0 dB)"}, {0.595, "(-4.5 dB)"},
+	{0.500, "(-6.0 dB)"}, {1.0,  "Invalid"}
+};
 
-struct mixlev_s smixlev_tbl[4] =  {{0.707, "(-3.0 dB)"}, {0.500, "(-6.0 dB)"},
-                                   {0.0,   "off    "}, {1.0,   "Invalid"}};
+static const struct mixlev_s smixlev_tbl[4] =  
+{
+	{0.707, "(-3.0 dB)"}, {0.500, "(-6.0 dB)"},
+	{  0.0,   "off    "}, {  1.0, "Invalid"}
+};
 
 static const char *language[128] = 
 {
@@ -69,55 +79,41 @@ static const char *language[128] =
 
 void stats_print_banner(syncinfo_t *syncinfo,bsi_t *bsi)
 {
-	printf(PACKAGE"-"VERSION" (C) 2000 Aaron Holtzman (aholtzma@ess.engr.uvic.ca)\n");
+	fprintf(stdout,PACKAGE"-"VERSION" (C) 2000 Aaron Holtzman (aholtzma@ess.engr.uvic.ca)\n");
 
-	printf("%d.%d Mode ",bsi->nfchans,bsi->lfeon);
-	switch (syncinfo->fscod)
-	{
-		case 2:
-			printf("32 KHz   ");
-			break;
-		case 1:
-			printf("44.1 KHz ");
-			break;
-		case 0:
-			printf("48 KHz   ");
-			break;
-		default:
-			printf("Invalid sampling rate ");
-			break;
-	}
-	printf("%4d kbps ",syncinfo->bit_rate);
+	fprintf(stdout,"%d.%d Mode ",bsi->nfchans,bsi->lfeon);
+	fprintf(stdout,"%2.1f KHz",syncinfo->sampling_rate * 1e-3);
+	fprintf(stdout,"%4d kbps ",syncinfo->bit_rate);
 	if (bsi->langcode && (bsi->langcod < 128))
-		printf("%s ", language[bsi->langcod]);
+		fprintf(stdout,"%s ", language[bsi->langcod]);
 
 	switch(bsi->bsmod)
 	{
 		case 0:
-			printf("Complete Main Audio Service");
+			fprintf(stdout,"Complete Main Audio Service");
 			break;
 		case 1:
-			printf("Music and Effects Audio Service");
+			fprintf(stdout,"Music and Effects Audio Service");
 		case 2:
-			printf("Visually Impaired Audio Service");
+			fprintf(stdout,"Visually Impaired Audio Service");
 			break;
 		case 3:
-			printf("Hearing Impaired Audio Service");
+			fprintf(stdout,"Hearing Impaired Audio Service");
 			break;
 		case 4:
-			printf("Dialogue Audio Service");
+			fprintf(stdout,"Dialogue Audio Service");
 			break;
 		case 5:
-			printf("Commentary Audio Service");
+			fprintf(stdout,"Commentary Audio Service");
 			break;
 		case 6:
-			printf("Emergency Audio Service");
+			fprintf(stdout,"Emergency Audio Service");
 			break;
 		case 7:
-			printf("Voice Over Audio Service");
+			fprintf(stdout,"Voice Over Audio Service");
 			break;
 	}
-	printf("\n");
+	fprintf(stdout,"\n");
 }
 
 void stats_print_syncinfo(syncinfo_t *syncinfo)
@@ -160,15 +156,23 @@ void stats_print_bsi(bsi_t *bsi)
 
 char *exp_strat_tbl[4] = {"R   ","D15 ","D25 ","D45 "};
 
-void stats_print_audblk(audblk_t *audblk)
+void stats_print_audblk(bsi_t *bsi,audblk_t *audblk)
 {
+	uint_32 i;
+
 	dprintf("(audblk) ");
 	dprintf("%s ",audblk->cplinu ? "cpl on " : "cpl off");
 	dprintf("%s ",audblk->baie? "bai " : "    ");
 	dprintf("%s ",audblk->snroffste? "snroffst " : "         ");
 	dprintf("%s ",audblk->deltbaie? "deltba " : "       ");
+	dprintf("%s ",audblk->phsflginu? "phsflg " : "       ");
 	dprintf("(%s %s %s %s %s) ",exp_strat_tbl[audblk->chexpstr[0]],
 		exp_strat_tbl[audblk->chexpstr[1]],exp_strat_tbl[audblk->chexpstr[2]],
 		exp_strat_tbl[audblk->chexpstr[3]],exp_strat_tbl[audblk->chexpstr[4]]);
+	dprintf("[");
+	for(i=0;i<bsi->nfchans;i++)
+		dprintf("%1d",audblk->blksw[i]);
+	dprintf("]");
+
 	dprintf("\n");
 }

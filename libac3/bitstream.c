@@ -28,25 +28,70 @@
 #include "ac3_internal.h"
 #include "bitstream.h"
 
+#define BUFFER_SIZE 4096
+
+static uint_8 buffer[BUFFER_SIZE];
+
+static uint_8 *buffer_start, *buffer_end;
+static uint_8 *chunk_start, *chunk_end;
+
 uint_32 bits_left;
 uint_32 current_word;
-uint_8 *buffer_start;
-uint_8 *buffer_end;
-uint_32 total_bits_read;
 
 void (*bitstream_fill_buffer)(uint_8**,uint_8**);
+
+uint_8 bitstream_get_byte(void)
+{
+	if(chunk_start == chunk_end)
+		bitstream_fill_buffer(&chunk_start,&chunk_end);
+
+	return (*chunk_start++);
+}
+
+uint_8 *bitstream_get_buffer_start(void)
+{
+	return buffer_start;
+}
+
+void
+bitstream_buffer_frame(uint_32 frame_size)
+{
+  uint_32 bytes_read;
+  uint_32 num_bytes;
+
+  bytes_read = 0;
+
+  do
+  {
+    if(chunk_start > chunk_end)
+			printf("argh!\n");
+    if(chunk_start == chunk_end)
+      bitstream_fill_buffer(&chunk_start,&chunk_end);
+
+    num_bytes = chunk_end - chunk_start;
+
+    if(bytes_read + num_bytes > frame_size)
+      num_bytes = frame_size - bytes_read;
+
+    memcpy(&buffer[bytes_read], chunk_start, num_bytes);
+
+    bytes_read += num_bytes;
+    chunk_start += num_bytes;
+  }
+  while (bytes_read != frame_size);
+
+  buffer_start = buffer;
+  buffer_end   = buffer + frame_size;
+
+	bits_left = 0;
+}
 
 
 static inline void
 bitstream_fill_current()
 {
-	//fprintf(stderr,"(fill) buffer_start %p, buffer_end %p, current_word 0x%08x, bits_left %d\n",buffer_start,buffer_end,current_word,bits_left);
-
 	current_word = *((uint_32*)buffer_start)++;
 	current_word = swab32(current_word);
-
-	if(buffer_start >= buffer_end)
-		bitstream_fill_buffer(&buffer_start,&buffer_end);
 }
 
 //
@@ -76,45 +121,9 @@ bitstream_get_bh(uint_32 num_bits)
 	return result;
 }
 
-void 
-bitstream_byte_align(void)
-{
-	//byte align the bitstream
-	bits_left = bits_left & ~7;
-	if(!bits_left)
-	{
-		bits_left = 32;
-		bitstream_fill_current();
-	}
-}
-
 void
 bitstream_init(void(*fill_function)(uint_8**,uint_8**))
 {
-	//fprintf(stderr,"(fill_buffer) buffer buffer_start %p, buffer_end %p, current_word 0x%08x, bits_left %d\n",buffer_start,buffer_end,current_word,bits_left);
 	// Setup the buffer fill callback 
 	bitstream_fill_buffer = fill_function;
-
-	bitstream_fill_buffer(&buffer_start,&buffer_end);
-
-	bits_left = 32;
-	current_word = *((uint_32*)buffer_start)++;
-	current_word = swab32(current_word);
-}
-
-uint_32 bitstream_done()
-{
-	//FIXME
-	return 0;
-}
-
-
-uint_32 bitstream_get_total_bits(void)
-{
-	return total_bits_read;
-}
-
-void bitstream_set_total_bits(uint_32 x)
-{
-	total_bits_read = x;
 }

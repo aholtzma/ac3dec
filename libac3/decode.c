@@ -48,6 +48,7 @@
 
 //our global config structure
 ac3_config_t ac3_config;
+uint_32 error_flag = 0;
 
 static audblk_t audblk;
 static bsi_t bsi;
@@ -55,40 +56,24 @@ static syncinfo_t syncinfo;
 static uint_32 frame_count = 0;
 static uint_32 done_banner;
 static ac3_frame_t frame;
+
 //the floating point samples for one audblk
 static stream_samples_t samples;
+
 //the integer samples for the entire frame (with enough space for 2 ch out)
-static sint_16 output_samples[2 * 6 * 256];
-
-void decode_find_sync(void)
-{
-	uint_16 sync_word;
-	uint_32 i = 0;
-
-	sync_word = bitstream_get(16);
-
-	/* Make sure we sync'ed */
-	while(1)
-	{
-		if(sync_word == 0x0b77)
-			break;
-		sync_word = sync_word * 2;
-		sync_word |= bitstream_get(1);
-		i++;
-	}
-	dprintf("(sync) %d bits skipped to synchronize\n",i);
-	dprintf("(sync) begin frame %d\n",frame_count);
-
-	bitstream_set_total_bits(16);
-}
+//if this size change, be sure to change the size when muting
+static sint_16 s16_samples[2 * 6 * 256];
 
 void
 ac3_init(ac3_config_t *config)
 {
 	memcpy(&ac3_config,config,sizeof(ac3_config_t));
+
 	bitstream_init(config->fill_buffer_callback);
 	imdct_init();
 	sanity_check_init(&syncinfo,&bsi,&audblk);
+
+	frame.audio_data = s16_samples;
 }
 
 ac3_frame_t*
@@ -96,10 +81,13 @@ ac3_decode_frame(void)
 {
 	uint_32 i;
 
-	decode_find_sync();
-	dprintf("(decode) begin frame %d\n",frame_count++);
-
+	//find a syncframe and parse
 	parse_syncinfo(&syncinfo);
+	if(error_flag)
+		goto error;
+
+	dprintf("(decode) begin frame %d\n",frame_count++);
+	frame.sampling_rate = syncinfo.sampling_rate;
 
 	parse_bsi(&bsi);
 
@@ -111,44 +99,51 @@ ac3_decode_frame(void)
 
 	for(i=0; i < 6; i++)
 	{
+		//Initialize freq/time sample storage
+		memset(samples,0,sizeof(float) * 256 * (bsi.nfchans + bsi.lfeon));
 
 		// Extract most of the audblk info from the bitstream
 		// (minus the mantissas 
 		parse_audblk(&bsi,&audblk);
-		sanity_check(&syncinfo,&bsi,&audblk);
 
 		// Take the differential exponent data and turn it into
 		// absolute exponents 
 		exponent_unpack(&bsi,&audblk); 
-		sanity_check(&syncinfo,&bsi,&audblk);
+		if(error_flag)
+			goto error;
 
 		// Figure out how many bits per mantissa 
 		bit_allocate(syncinfo.fscod,&bsi,&audblk);
-		sanity_check(&syncinfo,&bsi,&audblk);
 
 		// Extract the mantissas from the stream and
 		// generate floating point frequency coefficients
 		coeff_unpack(&bsi,&audblk,samples);
-		sanity_check(&syncinfo,&bsi,&audblk);
+		if(error_flag)
+			goto error;
 
 		if(bsi.acmod == 0x2)
 			rematrix(&audblk,samples);
 
 		// Convert the frequency samples into time samples 
 		imdct(&bsi,&audblk,samples);
-		sanity_check(&syncinfo,&bsi,&audblk);
 
 		// Downmix into the requested number of channels
 		// and convert floating point to sint_16
-		downmix(&bsi,samples,&output_samples[i * 2 * 256]);
-		memset(samples,0,sizeof(stream_samples_t));
+		downmix(&bsi,samples,&s16_samples[i * 2 * 256]);
+
+		sanity_check(&syncinfo,&bsi,&audblk);
+		if(error_flag)
+			goto error;
 	}
 	parse_auxdata(&syncinfo);
 
-	frame.audio_data = output_samples;
+	return &frame;	
+
+error:
+	//mute the frame
+	memset(s16_samples,0,sizeof(sint_16) * 256 * 2 * 6);
+
+	error_flag = 0;
 	return &frame;	
 
 }
-
-
-

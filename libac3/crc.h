@@ -22,7 +22,6 @@
  */
  
 int crc_validate(void);
-void crc_process(uint_32 data, uint_32 num_bits);
 void crc_init(void);
-void crc_process_32(uint_32 data);
-void crc_process_8(uint_32 data);
+void crc_process_byte(uint_8 data);
+void crc_process_frame(uint_8 *data,uint_32 num_bytes);

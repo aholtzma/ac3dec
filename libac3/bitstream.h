@@ -49,20 +49,21 @@
 
 extern uint_32 bits_left;
 extern uint_32 current_word;
-extern uint_32 total_bits_read;
 
 void bitstream_init(void(*fill_function)(uint_8**,uint_8**));
-inline uint_32 bitstream_get_bh(uint_32 num_bits);
-uint_32 bitstream_get_total_bits(void);
-void bitstream_set_total_bits(uint_32);
+
+uint_8 bitstream_get_byte(void);
+
+uint_8 *bitstream_get_buffer_start(void);
+void bitstream_buffer_frame(uint_32 frame_size);
+
+uint_32 bitstream_get_bh(uint_32 num_bits);
 
 static inline uint_32 
 bitstream_get(uint_32 num_bits)
 {
 	uint_32 result;
 	
-	total_bits_read += num_bits;
-
 	if(num_bits < bits_left)
 	{
 		result = (current_word << (32 - bits_left)) >> (32 - num_bits);

@@ -78,11 +78,7 @@ exp_unpack_ch(uint_16 type,uint_16 expstr,uint_16 ngrps,uint_16 initial_exp,
 	for(i=0; i< ngrps; i++)
 	{
 		if(exps[i] > 124)
-		{
-			//FIXME set an error flag and mute the frame
-			printf("\n!! Invalid exponent !!\n");
-			exit(1);
-		}
+			goto error;
 
 		exp_1 = exps[i] / 25;
 		exp_2 = (exps[i] - (exp_1 * 25)) / 5;
@@ -127,5 +123,13 @@ exp_unpack_ch(uint_16 type,uint_16 expstr,uint_16 ngrps,uint_16 initial_exp,
 				dest[j++] = exp_acc;
 		}
 	}	
+
+	return;
+
+			goto error;
+error:
+	if(!error_flag)
+		fprintf(stderr,"** Invalid exponent - skipping frame **\n");
+	error_flag = 1;
 }
 

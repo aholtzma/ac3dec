@@ -32,12 +32,6 @@
 #include "decode.h"
 #include "imdct.h"
 
-
-//FIXME remove
-#include <unistd.h>
-#include <sys/time.h>
-//FIXME remove
-
 void imdct_do_256(float data[],float delay[]);
 void imdct_do_512(float data[],float delay[]);
 
@@ -430,7 +424,6 @@ imdct_do_256(float data[],float delay[])
 	{ 
 		*data_ptr++  = 2.0f * (-buf_1[i].imag      * *window_ptr++ + *delay_ptr++);
 		*data_ptr++  = 2.0f * ( buf_1[64-i-1].real * *window_ptr++ + *delay_ptr++);
-
 	}
 
 	for(i=0; i< 64; i++) 
@@ -454,29 +447,29 @@ imdct_do_256(float data[],float delay[])
 	}
 }
 
-
-
-int blah = 0;
+//FIXME remove - for timing code
+///#include <sys/time.h>
+//FIXME remove
 
 void 
 imdct(bsi_t *bsi,audblk_t *audblk, stream_samples_t samples) {
 	int i;
-	struct timeval start,end;
 
+	//handy timing code
+	//struct timeval start,end;
+
+	//gettimeofday(&start,0);
+	
 	for(i=0; i<bsi->nfchans;i++)
 	{
-		gettimeofday(&start,0);
-
 		if(audblk->blksw[i])
 			imdct_do_256(samples[i],delay[i]);
 		else
 			imdct_do_512(samples[i],delay[i]);
-
-		gettimeofday(&end,0);
-
-		//printf("%d %ld us\n",blah++,(end.tv_sec - start.tv_sec) * 1000000 + 
-		//		end.tv_usec - start.tv_usec);
 	}
+	//gettimeofday(&end,0);
+	//printf("imdct %ld us\n",(end.tv_sec - start.tv_sec) * 1000000 +
+        //end.tv_usec - start.tv_usec);
 
 	//XXX We don't bother with the IMDCT for the LFE as it's currently
 	//unused.

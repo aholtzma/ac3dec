@@ -1,9 +1,22 @@
+ac3dec-0.6.1 Mon Mar 27 20:27:06 EST 2000
+-Fix another 2.0 problem (rematrix was wrong).
+-Fix the never resync on a bad crc bug.
+
+ac3dec-0.6.0 Sat Mar 18 19:43:25 EST 2000
+-New library interface 
+-Fix bug wrt coupling channels that was causing sound quality problems. 
+-Fix 2.0 mode problems (aka the I forgot to implement the phase flags bug). 
+-All around speed improvements (almost twice as fast) 
+-Improved robustness when fed bad data. The entire frame is checksummed before playback.
+
 ac3dec-0.5.6 Tue Nov 16 00:37:34 EST 1999
--Irix support added by Jim Miller <jmiller@heli.engr.sgi.com> 
+-Irix support 
+-Alpha fixes 
 -Minor performance enhancements to downmix and imdct
--OpenBSD fixes
+-OpenBSD fixes 
 -extract_ac3 can now read from stdin
--Tweakage of the ring_buffer size and output_linux.c sleep time
+-Change output_linux to block on write instead of using the
+ ring buffer. Let me know if this causes/fixes any problems
 
 ac3dec-0.5.5 Wed Aug 25 15:36:44 EDT 1999
 -Fixed a cut and paste bug (argh!) in parse.c which potentially 

@@ -28,14 +28,14 @@
 #include "ac3_internal.h"
 
 
-#include "decode.h"
 #include "bitstream.h"
 #include "stats.h"
 #include "debug.h"
+#include "crc.h"
 #include "parse.h"
 
 /* Misc LUT */
-static	uint_16 nfchans[] = {2,1,2,3,3,4,4,5};
+static const uint_16 nfchans[8] = {2,1,2,3,3,4,4,5};
 
 struct frmsize_s
 {
@@ -43,62 +43,118 @@ struct frmsize_s
 	uint_16 frm_size[3];
 };
 
-struct frmsize_s frmsizecod_tbl[] = {
-      { 32  ,{64   ,69   ,96   } },
-      { 32  ,{64   ,70   ,96   } },
-      { 40  ,{80   ,87   ,120  } },
-      { 40  ,{80   ,88   ,120  } },
-      { 48  ,{96   ,104  ,144  } },
-      { 48  ,{96   ,105  ,144  } },
-      { 56  ,{112  ,121  ,168  } },
-      { 56  ,{112  ,122  ,168  } },
-      { 64  ,{128  ,139  ,192  } },
-      { 64  ,{128  ,140  ,192  } },
-      { 80  ,{160  ,174  ,240  } },
-      { 80  ,{160  ,175  ,240  } },
-      { 96  ,{192  ,208  ,288  } },
-      { 96  ,{192  ,209  ,288  } },
-      { 112 ,{224  ,243  ,336  } },
-      { 112 ,{224  ,244  ,336  } },
-      { 128 ,{256  ,278  ,384  } },
-      { 128 ,{256  ,279  ,384  } },
-      { 160 ,{320  ,348  ,480  } },
-      { 160 ,{320  ,349  ,480  } },
-      { 192 ,{384  ,417  ,576  } },
-      { 192 ,{384  ,418  ,576  } },
-      { 224 ,{448  ,487  ,672  } },
-      { 224 ,{448  ,488  ,672  } },
-      { 256 ,{512  ,557  ,768  } },
-      { 256 ,{512  ,558  ,768  } },
-      { 320 ,{640  ,696  ,960  } },
-      { 320 ,{640  ,697  ,960  } },
-      { 384 ,{768  ,835  ,1152 } },
-      { 384 ,{768  ,836  ,1152 } },
-      { 448 ,{896  ,975  ,1344 } },
-      { 448 ,{896  ,976  ,1344 } },
-      { 512 ,{1024 ,1114 ,1536 } },
-      { 512 ,{1024 ,1115 ,1536 } },
-      { 576 ,{1152 ,1253 ,1728 } },
-      { 576 ,{1152 ,1254 ,1728 } },
-      { 640 ,{1280 ,1393 ,1920 } },
-      { 640 ,{1280 ,1394 ,1920 } }};
+static const struct frmsize_s frmsizecod_tbl[64] = 
+{
+	{ 32  ,{64   ,69   ,96   } },
+	{ 32  ,{64   ,70   ,96   } },
+	{ 40  ,{80   ,87   ,120  } },
+	{ 40  ,{80   ,88   ,120  } },
+	{ 48  ,{96   ,104  ,144  } },
+	{ 48  ,{96   ,105  ,144  } },
+	{ 56  ,{112  ,121  ,168  } },
+	{ 56  ,{112  ,122  ,168  } },
+	{ 64  ,{128  ,139  ,192  } },
+	{ 64  ,{128  ,140  ,192  } },
+	{ 80  ,{160  ,174  ,240  } },
+	{ 80  ,{160  ,175  ,240  } },
+	{ 96  ,{192  ,208  ,288  } },
+	{ 96  ,{192  ,209  ,288  } },
+	{ 112 ,{224  ,243  ,336  } },
+	{ 112 ,{224  ,244  ,336  } },
+	{ 128 ,{256  ,278  ,384  } },
+	{ 128 ,{256  ,279  ,384  } },
+	{ 160 ,{320  ,348  ,480  } },
+	{ 160 ,{320  ,349  ,480  } },
+	{ 192 ,{384  ,417  ,576  } },
+	{ 192 ,{384  ,418  ,576  } },
+	{ 224 ,{448  ,487  ,672  } },
+	{ 224 ,{448  ,488  ,672  } },
+	{ 256 ,{512  ,557  ,768  } },
+	{ 256 ,{512  ,558  ,768  } },
+	{ 320 ,{640  ,696  ,960  } },
+	{ 320 ,{640  ,697  ,960  } },
+	{ 384 ,{768  ,835  ,1152 } },
+	{ 384 ,{768  ,836  ,1152 } },
+	{ 448 ,{896  ,975  ,1344 } },
+	{ 448 ,{896  ,976  ,1344 } },
+	{ 512 ,{1024 ,1114 ,1536 } },
+	{ 512 ,{1024 ,1115 ,1536 } },
+	{ 576 ,{1152 ,1253 ,1728 } },
+	{ 576 ,{1152 ,1254 ,1728 } },
+	{ 640 ,{1280 ,1393 ,1920 } },
+	{ 640 ,{1280 ,1394 ,1920 } }
+};
 
 /* Parse a syncinfo structure, minus the sync word */
 void
 parse_syncinfo(syncinfo_t *syncinfo)
 {
+	uint_32 tmp = 0;
+	uint_16 sync_word = 0;
+	uint_32 time_out = 1<<16;
 
-	/* Get crc1 - we don't actually use this data though */
-	bitstream_get(16);
+	// 
+	// Find a ac3 sync frame. Time out if we read 64k without finding
+	// one.
+	// 
+	while(time_out--)
+	{
+		sync_word = (sync_word << 8) + bitstream_get_byte();
 
-	/* Get the sampling rate */
-	syncinfo->fscod  = bitstream_get(2);
+		if(sync_word == 0x0b77)
+			break;
+	}
 
-	/* Get the frame size code */
-	syncinfo->frmsizecod = bitstream_get(6);
+	//
+	// We need to read in the entire syncinfo struct (0x0b77 + 24 bits)
+	// in order to determine how big the frame is
+	//
+	tmp = (tmp << 8) + bitstream_get_byte();
+	tmp = (tmp << 8) + bitstream_get_byte();
+	tmp = (tmp << 8) + bitstream_get_byte();
 
+	// Get the sampling rate 
+	syncinfo->fscod  = (tmp >> 6) & 0x3;
+
+	if(syncinfo->fscod == 3)
+	{
+		//invalid sampling rate code
+		error_flag = 1;	
+		return;
+	}
+	else if(syncinfo->fscod == 2)
+		syncinfo->sampling_rate = 32000;
+	else if(syncinfo->fscod == 1)
+		syncinfo->sampling_rate = 44100;
+	else
+		syncinfo->sampling_rate = 48000;
+
+	// Get the frame size code 
+	syncinfo->frmsizecod = tmp & 0x3f;
+
+	// Calculate the frame size and bitrate
+	syncinfo->frame_size = 
+		frmsizecod_tbl[syncinfo->frmsizecod].frm_size[syncinfo->fscod];
 	syncinfo->bit_rate = frmsizecod_tbl[syncinfo->frmsizecod].bit_rate;
-	syncinfo->frame_size = frmsizecod_tbl[syncinfo->frmsizecod].frm_size[syncinfo->fscod];
+
+
+	// Buffer the entire syncframe 
+	bitstream_buffer_frame(syncinfo->frame_size * 2 - 5);
+
+	// Check the crc over the entire frame 
+	crc_init();
+
+	crc_process_byte(tmp>>16);
+	crc_process_byte((tmp>>8) & 0xff);
+	crc_process_byte(tmp & 0xff);
+	crc_process_frame(bitstream_get_buffer_start(),syncinfo->frame_size * 2 - 5);
+
+	if(!crc_validate())
+	{
+		error_flag = 1;
+		fprintf(stderr,"** CRC failed - skipping frame **\n");
+		return;
+	}
 
 	stats_print_syncinfo(syncinfo);
 }
@@ -542,12 +598,14 @@ parse_audblk(bsi_t *bsi,audblk_t *audblk)
 		}
 	}
 
-	stats_print_audblk(audblk);
+	stats_print_audblk(bsi,audblk);
 }
 
 void
 parse_auxdata(syncinfo_t *syncinfo)
 {
+	//FIXME keep this now that we don't really need it?
+#if 0
 	int i;
 	int skip_length;
 	uint_16 crc;
@@ -573,6 +631,7 @@ parse_auxdata(syncinfo_t *syncinfo)
 
 	//Get the crc
 	crc = bitstream_get(16);
+#endif
 }
 
 

@@ -25,4 +25,4 @@
  *
  */
 
-void downmix(bsi_t* bsi, stream_samples_t stream_samples,sint_16 *output_samples);
+void downmix(bsi_t* bsi, stream_samples_t stream_samples,sint_16 *s16_samples);

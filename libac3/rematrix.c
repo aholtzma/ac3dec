@@ -74,8 +74,8 @@ void rematrix(audblk_t *audblk, stream_samples_t samples)
 	
 		for(j=start;j < end; j++)
 		{
-			left  = 0.5 * (samples[0][j] + samples[1][j]);
-			right = 0.5 * (samples[0][j] - samples[1][j]);
+			left  = samples[0][j] + samples[1][j];
+			right = samples[0][j] - samples[1][j];
 			samples[0][j] = left;
 			samples[1][j] = right;
 		}

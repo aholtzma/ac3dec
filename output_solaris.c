@@ -1,7 +1,7 @@
 /*
  *
- *  output_linux.c
- *    
+ *  output_solaris.c
+ *
  *	Copyright (C) Aaron Holtzman - May 1999
  *
  *  This file is part of ac3dec, a free Dolby AC-3 stream decoder.
@@ -32,15 +32,15 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <math.h>
-#if defined(__OpenBSD__)
-#include <soundcard.h>
-#elif defined(__FreeBSD__)
-#include <machine/soundcard.h>
-#else
-#include <sys/soundcard.h>
-#endif
+#include <sys/audioio.h>
 #include <sys/ioctl.h>
+#include <stropts.h>
+#include <signal.h>
+#include <math.h>
+
+//FIXME broken solaris headers!
+int usleep(unsigned int useconds);
+
 
 //this sux...types should go in config.h methinks
 typedef signed short sint_16;
@@ -48,8 +48,9 @@ typedef unsigned int uint_32;
 
 #include "output.h"
 
-
-static char dev[] = "/dev/dsp";
+/* Global to keep track of old state */
+static audio_info_t info;
+static char dev[] = "/dev/audio";
 static int fd;
 
 
@@ -58,8 +59,7 @@ static int fd;
  */
 int output_open(int bits, int rate, int channels)
 {
-  int tmp;
-  
+
   /*
    * Open the device driver
    */
@@ -71,21 +71,28 @@ int output_open(int bits, int rate, int channels)
         strerror(errno), dev);
     goto ERR;
   }
+	fprintf(stderr,"Opened audio device \"%s\"\n",dev);
 
-  tmp = channels == 2 ? 1 : 0;
-  ioctl(fd,SNDCTL_DSP_STEREO,&tmp);
+	/* Setup our parameters */
+	AUDIO_INITINFO(&info);
 
-  tmp = bits;
-  ioctl(fd,SNDCTL_DSP_SAMPLESIZE,&tmp);
+	info.play.sample_rate = rate;
+	info.play.precision = bits;
+	info.play.channels = channels;
+	info.play.buffer_size = 1024;
+	info.play.encoding = AUDIO_ENCODING_LINEAR;
+	//info.play.port = AUDIO_SPEAKER;
+	//info.play.gain = 110;
 
-  tmp = rate;
-  ioctl(fd,SNDCTL_DSP_SPEED, &tmp);
+	/* Write our configuration */
+	/* An implicit GETINFO is also performed so we can get
+	 * the buffer_size */
 
-	//this is cheating
-	tmp = 256;
-  ioctl(fd,SNDCTL_DSP_SETFRAGMENT,&tmp);
-
-
+  if(ioctl(fd, AUDIO_SETINFO, &info) < 0)
+  {
+    fprintf(stderr, "%s: Writing audio config block\n",strerror(errno));
+    goto ERR;
+  }
 
 	return 1;
 
@@ -94,15 +101,18 @@ ERR:
   return 0;
 }
 
+unsigned long j= 0 ;
 /*
  * play the sample to the already opened file descriptor
  */
 void output_play(sint_16* output_samples, uint_32 num_bytes)
 {
-//	if(fd < 0)
-//		return;
-
-	write(fd,output_samples,1024 * 6);
+	write(fd,&output_samples[0 * 512],1024);
+	write(fd,&output_samples[1 * 512],1024);
+	write(fd,&output_samples[2 * 512],1024);
+	write(fd,&output_samples[3 * 512],1024);
+	write(fd,&output_samples[4 * 512],1024);
+	write(fd,&output_samples[5 * 512],1024);
 }
 
 
@@ -111,3 +121,4 @@ output_close(void)
 {
 	close(fd);
 }
+

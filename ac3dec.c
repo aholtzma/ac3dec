@@ -32,24 +32,23 @@
 #include "libac3/ac3.h"
 #include "output.h"
 
-//FIXME remove
-#include <math.h>
-
-uint_8 buf[2048];
+#define CHUNK_SIZE 2047
+uint_8 buf[CHUNK_SIZE];
 FILE *in_file;
  
 void fill_buffer(uint_8 **start,uint_8 **end)
 {
 	uint_32 bytes_read;
 
-	bytes_read = fread(buf,1,2048,in_file);
+	*start = buf;
+
+	bytes_read = fread(*start,1,CHUNK_SIZE,in_file);
 
 	//FIXME hack...
-	if(bytes_read < 2048)
+	if(bytes_read < CHUNK_SIZE)
 		exit(0);
 
-	*start = buf;
-	*end= buf + bytes_read;
+	*end= *start + bytes_read;
 }
 
 int main(int argc,char *argv[])
@@ -77,14 +76,16 @@ int main(int argc,char *argv[])
 	ac3_config.flags = 0;
 
 	ac3_init(&ac3_config);
+	
+	ac3_frame = ac3_decode_frame();
+	output_open(16,ac3_frame->sampling_rate,2);
 
-	output_open(16,44100,2);
-
-	while((ac3_frame = ac3_decode_frame())) 
+	do
 	{
 		//Send the samples to the output device 
 		output_play(ac3_frame->audio_data, 256 * 6 * 2);
 	}
+	while((ac3_frame = ac3_decode_frame()));
 
 	output_close();
 	fclose(in_file);

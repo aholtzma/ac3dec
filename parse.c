@@ -28,10 +28,57 @@
 #include "decode.h"
 #include "bitstream.h"
 #include "stats.h"
+#include "debug.h"
 #include "parse.h"
 
 /* Misc LUT */
 static	uint_16 nfchans[] = {2,1,2,3,3,4,4,5};
+
+struct frmsize_s
+{
+	uint_16 bit_rate;
+	uint_16 frm_size[3];
+};
+
+struct frmsize_s frmsizecod_tbl[] = {
+      { 32  ,{64   ,69   ,96   } },
+      { 32  ,{64   ,70   ,96   } },
+      { 40  ,{80   ,87   ,120  } },
+      { 40  ,{80   ,88   ,120  } },
+      { 48  ,{96   ,104  ,144  } },
+      { 48  ,{96   ,105  ,144  } },
+      { 56  ,{112  ,121  ,168  } },
+      { 56  ,{112  ,122  ,168  } },
+      { 64  ,{128  ,139  ,192  } },
+      { 64  ,{128  ,140  ,192  } },
+      { 80  ,{160  ,174  ,240  } },
+      { 80  ,{160  ,175  ,240  } },
+      { 96  ,{192  ,208  ,288  } },
+      { 96  ,{192  ,209  ,288  } },
+      { 112 ,{224  ,243  ,336  } },
+      { 112 ,{224  ,244  ,336  } },
+      { 128 ,{256  ,278  ,384  } },
+      { 128 ,{256  ,279  ,384  } },
+      { 160 ,{320  ,348  ,480  } },
+      { 160 ,{320  ,349  ,480  } },
+      { 192 ,{384  ,417  ,576  } },
+      { 192 ,{384  ,418  ,576  } },
+      { 224 ,{448  ,487  ,672  } },
+      { 224 ,{448  ,488  ,672  } },
+      { 256 ,{512  ,557  ,768  } },
+      { 256 ,{512  ,558  ,768  } },
+      { 320 ,{640  ,696  ,960  } },
+      { 320 ,{640  ,697  ,960  } },
+      { 384 ,{768  ,835  ,1152 } },
+      { 384 ,{768  ,836  ,1152 } },
+      { 448 ,{896  ,975  ,1344 } },
+      { 448 ,{896  ,976  ,1344 } },
+      { 512 ,{1024 ,1114 ,1536 } },
+      { 512 ,{1024 ,1115 ,1536 } },
+      { 576 ,{1152 ,1253 ,1728 } },
+      { 576 ,{1152 ,1254 ,1728 } },
+      { 640 ,{1280 ,1393 ,1920 } },
+      { 640 ,{1280 ,1394 ,1920 } }};
 
 /* Parse a syncinfo structure, minus the sync word */
 void
@@ -47,8 +94,9 @@ parse_syncinfo(syncinfo_t *syncinfo,bitstream_t *bs)
 	/* Get the frame size code */
 	syncinfo->frmsizecod = bitstream_get(bs,6);
 
+	syncinfo->bit_rate = frmsizecod_tbl[syncinfo->frmsizecod].bit_rate;
+	syncinfo->frame_size = frmsizecod_tbl[syncinfo->frmsizecod].frm_size[syncinfo->fscod];
 
-	/*FIXME insert stats here*/
 	stats_printf_syncinfo(syncinfo);
 }
 
@@ -248,12 +296,11 @@ parse_audblk(bsi_t *bsi,audblk_t *audblk,bitstream_t *bs)
 			 * band */
 			audblk->ncplbnd = audblk->ncplsubnd; 
 
-			for(i=1;i < audblk->ncplsubnd; i++)
+			for(i=1; i< audblk->ncplsubnd; i++)
 			{
 				audblk->cplbndstrc[i] = bitstream_get(bs,1);
 				audblk->ncplbnd -= audblk->cplbndstrc[i];
 			}
-
 		}
 	}
 
@@ -270,7 +317,7 @@ parse_audblk(bsi_t *bsi,audblk_t *audblk,bitstream_t *bs)
 
 			if(audblk->cplcoe[i])
 			{
-				audblk->mstrcplco[i] = bitstream_get(bs,1); 
+				audblk->mstrcplco[i] = bitstream_get(bs,2); 
 				for(j=0;j < audblk->ncplbnd; j++)
 				{
 					audblk->cplcoexp[i][j] = bitstream_get(bs,4); 
@@ -295,8 +342,13 @@ parse_audblk(bsi_t *bsi,audblk_t *audblk,bitstream_t *bs)
 		audblk->rematstr = bitstream_get(bs,1);
 		if(audblk->rematstr)
 		{
-			if((audblk->cplbegf > 2) || (audblk->cplinu == 0)) 
+			if (audblk->cplinu == 0) 
 			{ 
+				for(i = 0; i < 4; i++) 
+					audblk->rematflg[i] = bitstream_get(bs,1);
+			}
+			if((audblk->cplbegf > 2) && audblk->cplinu) 
+			{
 				for(i = 0; i < 4; i++) 
 					audblk->rematflg[i] = bitstream_get(bs,1);
 			}
@@ -316,11 +368,8 @@ parse_audblk(bsi_t *bsi,audblk_t *audblk,bitstream_t *bs)
 	{
 		/* Get the coupling channel exponent strategy */
 		audblk->cplexpstr = bitstream_get(bs,2);
-		if (audblk->cplexpstr == 0)
-			audblk->ncplgrps = 0;	
-		else
-			audblk->ncplgrps = (audblk->cplendmant - audblk->cplstrtmant) / 
-				(3 * (3 << (audblk->cplstrtmant-1)));
+		audblk->ncplgrps = (audblk->cplendmant - audblk->cplstrtmant) / 
+				(3 << (audblk->cplexpstr-1));
 	}
 
 	for(i = 0; i < bsi->nfchans; i++)
@@ -337,13 +386,15 @@ parse_audblk(bsi_t *bsi,audblk_t *audblk,bitstream_t *bs)
 
 		if(audblk->chexpstr[i] != EXP_REUSE) 
 		{ 
-			if (!audblk->chincpl[i]) 
+			if (audblk->cplinu && audblk->chincpl[i]) 
+			{
+				audblk->endmant[i] = audblk->cplstrtmant;
+			}
+			else
 			{
 				audblk->chbwcod[i] = bitstream_get(bs,6); 
 				audblk->endmant[i] = ((audblk->chbwcod[i] + 12) * 3) + 37;
 			}
-			else
-				audblk->endmant[i] = audblk->cplstrtmant;
 
 			/* Calculate the number of exponent groups to fetch */
 			grp_size =  3 * (1 << (audblk->chexpstr[i] - 1));
@@ -468,20 +519,24 @@ parse_audblk(bsi_t *bsi,audblk_t *audblk,bitstream_t *bs)
 	}
 
 	/* Check to see if there's any dummy info to get */
-	if(/* skiple = */ bitstream_get(bs,1))
+	if((audblk->skiple =  bitstream_get(bs,1)))
 	{
-		uint_16 skipl;
 		uint_16 skip_data;
 
-		skipl = bitstream_get(bs,9);
+		audblk->skipl = bitstream_get(bs,9);
 		//FIXME remove
-		//fprintf(stderr,"skipping %d bytes\n",skipl);
+		//fprintf(stderr,"(parse) skipping %d bytes\n",audblk->skipl);
 
-		for(i = 0; i < skipl ; i++)
+		for(i = 0; i < audblk->skipl ; i++)
 		{
 			skip_data = bitstream_get(bs,8);
 			//FIXME remove
-		//fprintf(stderr,"skipped data %2x\n",skip_data);
+			//fprintf(stderr,"skipped data %2x\n",skip_data);
+			//if(skip_data != 0)
+			//{	
+				//dprintf("(parse) Invalid skipped data %2x\n",skip_data);
+				//exit(1);
+			//}
 		}
 	}
 
@@ -489,26 +544,27 @@ parse_audblk(bsi_t *bsi,audblk_t *audblk,bitstream_t *bs)
 }
 
 void
-parse_auxdata(bitstream_t *bs)
+parse_auxdata(syncinfo_t *syncinfo,bitstream_t *bs)
 {
 	int i;
 	int skip_length;
 	uint_16 crc;
 	uint_16 auxdatae;
 
-	//FIXME use proper frame size
-	skip_length = (768 * 16)  - bs->total_bits_read - 17 - 1;
-	//FIXME remove
-	//fprintf(stderr,"(auxdata) skipping %d auxbits\n",skip_length);
+	skip_length = (syncinfo->frame_size * 16)  - bs->total_bits_read - 17 - 1;
 
+	//FIXME remove
+	//dprintf("(auxdata) skipping %d auxbits\n",skip_length);
+	
 	for(i=0; i <  skip_length; i++)
 		//printf("Skipped bit %i\n",(uint_16)bitstream_get(bs,1));
 		bitstream_get(bs,1);
 
 	//get the auxdata exists bit
 	auxdatae = bitstream_get(bs,1);	
+
 	//FIXME remove
-	//printf("auxdatae = %i\n",auxdatae);
+	//dprintf("auxdatae = %i\n",auxdatae);
 
 	//Skip the CRC reserved bit
 	bitstream_get(bs,1);

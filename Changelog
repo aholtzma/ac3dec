@@ -1,0 +1,12 @@
+ac3dec-0.5.0  Wed Jun 23 11:06:06 EDT 1999
+-First public release of ac3dec.
+
+ac3dec-0.5.1  Wed Jun 30 17:48:52 PDT 1999
+-Compiles and dies gracefully under Linux now.
+
+ac3dec-0.5.2  Sun Jul  4 12:00:25 PDT 1999
+-output_linux.c patch provided by Michael Holzt <kju@flummi.de>
+
+ac3dec-0.5.3  Mon Jul 12 10:45:56 PDT 1999
+-Fixed problems related to streams with coupling channel enabled.
+-Minor performance enhancements

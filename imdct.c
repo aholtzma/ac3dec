@@ -234,24 +234,6 @@ imdct_do_512(float x[],float y[],float delay[])
 	  buf[i].imag =(x[2*i]       * xcos1[i])  +  (x[N/2-2*i-1] * xsin1[i]);
 	}
 
-	//FIXME remove
-#if 0
- for(i=0; i<N/4; i++) 
- {
-	 dft_buf[i].real = 0.0;
-	 dft_buf[i].imag = 0.0;
-
-    for(k=0; k<N/4; k++)
-    {
-			tmp_a_r = buf[k].real;
-			tmp_a_i = buf[k].imag;
-      dft_buf[i].real += (tmp_a_r * cos(8*M_PI*k*i/N)) - (tmp_a_i * sin(8*M_PI*k*i/N));
-      dft_buf[i].imag += (tmp_a_r * sin(8*M_PI*k*i/N)) + (tmp_a_i * cos(8*M_PI*k*i/N));
-    }
-  }
- 	memcpy(buf,dft_buf,128 * sizeof(complex_t));
-#endif
-	
 	/* IFFT cmplx conjugate and shuffle */
 	//cmplx conjugate
 	for(i=0; i<N/4; i++) 

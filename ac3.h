@@ -45,7 +45,7 @@ typedef signed char    sint_8;
 #define DELTA_BIT_NONE (2)
 #define DELTA_BIT_RESERVED (3)
 
-/* The following structures are filled in by their corresponding parse_fill_*
+/* The following structures are filled in by their corresponding parse_*
  * functions. See http://www.atsc.org/Standards/A52/a_52.pdf for
  * full details on each field. Indented fields are used to denote
  * conditional fields.
@@ -62,6 +62,13 @@ typedef struct syncinfo_s
 	uint_16		fscod;	
 	/* Frame size code */
 	uint_16		frmsizecod;
+
+	/* Information not in the AC-3 bitstream, but derived */
+	/* Frame size in 16 bit words */
+	uint_16 frame_size;
+	/* Bit rate in kilobits */
+	uint_16 bit_rate;
+
 } syncinfo_t;
 
 typedef struct bsi_s
@@ -260,11 +267,9 @@ typedef struct audblk_s
 			uint_16 deltba[5][8];
 
 	/* skip length exists */
-	/*uint_16 skiple;*/
+	uint_16 skiple;
 		/* skip length */
-		/*uint_16 skipl;*/
-		/* skip length */
-		/*uint_16 skipl;*/
+		uint_16 skipl;
 
 	/* channel mantissas */
 	uint_16 chmant[5][256];

@@ -82,11 +82,9 @@ bitstream_load(bitstream_t *bs)
 	bs->current_word = SWAP_ENDIAN32(bs->current_word);
 	bs->bits_left = bytes_read * 8;
 
+	//FIXME finishing up the stream isn't done too gracefully
 	if (bytes_read < 4)
-	{
-		printf("done!");
 		bs->done = 1;
-	}
 }
 
 /* Opens a bitstream for use in bitstream_get */

@@ -1,8 +1,9 @@
-- Detect the end of file and exit
 - Add proper error detection.
 - Mute frame on error.
-- Use proper frame sizes in auxdata parsing
+- Use proper frame sizes in auxdata parsing - DONE July 1999 - AH
 - Separate uint_* typedefs from ac3.h
-- Fix coupling channel support
-- Add delta bit allocation support
+- Fix coupling channel support - DONE July 1999 - AH
+- Add delta bit allocation support - DONE July 1999 - AH
 - Detect hrtime on solaris and enable it via config.h
+- Add multilevel debug output
+- Add downmixing support

@@ -13,6 +13,10 @@
 
 void convert_to_float(uint_16 exp, uint_16 mant, uint_32 *dest);
 
+static float cpl_tmp[256];
+
+void uncouple_channel(stream_coeffs_t *coeffs,audblk_t *audblk, uint_32 ch);
+
 void
 uncouple(bsi_t *bsi,audblk_t *audblk,stream_coeffs_t *coeffs)
 {
@@ -27,26 +31,20 @@ uncouple(bsi_t *bsi,audblk_t *audblk,stream_coeffs_t *coeffs)
 
 	if(audblk->cplinu)
 	{
-		uint_16 cplstrtmant;
 
-		cplstrtmant = audblk->cplstrtmant;
+		for(j=audblk->cplstrtmant; j < audblk->cplendmant; j++)
+			 convert_to_float(audblk->cpl_exp[j],audblk->cplmant[j],
+					(uint_32*) &cpl_tmp[j]);
 
 		for(i=0; i< bsi->nfchans; i++)
 		{
 			if(audblk->chincpl[i])
 			{
-
-				//FIXME do the conversion once in a local buffer
-				//and then memcpy
-				/* ncplmant is equal to 12 * ncplsubnd */
-				for(j=0; j < 12 * audblk->ncplsubnd; j++)
-					 convert_to_float(audblk->cpl_exp[j],audblk->cplmant[j],
-							(uint_32*) &coeffs->fbw[i][j + cplstrtmant]);
+				uncouple_channel(coeffs,audblk,i);
 			}
 		}
 
 	}
-
 
 	if(bsi->lfeon)
 	{
@@ -57,6 +55,44 @@ uncouple(bsi_t *bsi,audblk_t *audblk,stream_coeffs_t *coeffs)
 
 	}
 
+}
+
+void
+uncouple_channel(stream_coeffs_t *coeffs,audblk_t *audblk, uint_32 ch)
+{
+	uint_32 bnd = 0;
+	uint_32 i;
+	float cpl_coord;
+	uint_32 cpl_exp_tmp;
+	uint_32 cpl_mant_tmp;
+
+	for(i=audblk->cplstrtmant;i<audblk->cplendmant;i+=12)
+	{
+		if(!audblk->cplbndstrc[bnd])
+		{
+			cpl_exp_tmp = audblk->cplcoexp[ch][bnd] + 3 * audblk->mstrcplco[ch];
+			if(audblk->cplcoexp[ch][bnd] == 15)
+				cpl_mant_tmp = (audblk->cplcomant[ch][bnd]) << 12;
+			else
+				cpl_mant_tmp = ((0x10) & audblk->cplcomant[ch][bnd]) << 11;
+			
+			convert_to_float(cpl_exp_tmp,cpl_mant_tmp,(uint_32*)&cpl_coord);
+		}
+		bnd++;
+
+		coeffs->fbw[ch][i]   = cpl_coord * cpl_tmp[i];
+		coeffs->fbw[ch][i+1] = cpl_coord * cpl_tmp[i+1];
+		coeffs->fbw[ch][i+2] = cpl_coord * cpl_tmp[i+2];
+		coeffs->fbw[ch][i+3] = cpl_coord * cpl_tmp[i+3];
+		coeffs->fbw[ch][i+4] = cpl_coord * cpl_tmp[i+4];
+		coeffs->fbw[ch][i+5] = cpl_coord * cpl_tmp[i+5];
+		coeffs->fbw[ch][i+6] = cpl_coord * cpl_tmp[i+6];
+		coeffs->fbw[ch][i+7] = cpl_coord * cpl_tmp[i+7];
+		coeffs->fbw[ch][i+8] = cpl_coord * cpl_tmp[i+8];
+		coeffs->fbw[ch][i+9] = cpl_coord * cpl_tmp[i+9];
+		coeffs->fbw[ch][i+10] = cpl_coord * cpl_tmp[i+10];
+		coeffs->fbw[ch][i+11] = cpl_coord * cpl_tmp[i+11];
+	}
 }
 
 /* Converts an unsigned exponent in the range of 0-24 and a 16 bit mantissa
@@ -92,61 +128,12 @@ void convert_to_float(uint_16 exp, uint_16 mant, uint_32 *dest)
 	mantissa <<= 1;
 
 	/* Find the index of the most significant one bit */
-	/*
-	 * This code is a little faster than the original code:
-	 *
-		for(i = 0; i < 16; i++)
-		{
-			if((mantissa << i) & 0x8000)
-				break;
-		}
-		i++;
-	 *
-	 * The advantage is we remove the serial shift and add
-	 * which helps a lot. We make up for it in increased code size
-	 */
-#if 0
-		for(i = 0; i < 16; i++)
-		{
-			if((mantissa << i) & 0x8000)
-				break;
-		}
-		i++;
-#endif
-		i = 0;
-		//FIXME is this any better? 
-	if (mantissa & 0x8000)
-		i = 1;
-	else if (mantissa & 0x4000)
-		i = 2;
-	else if (mantissa & 0x2000)
-		i = 3;
-	else if (mantissa & 0x1000)
-		i = 4;
-	else if (mantissa & 0x0800)
-		i = 5;
-	else if (mantissa & 0x0400)
-		i = 6;
-	else if (mantissa & 0x0200)
-		i = 7;
-	else if (mantissa & 0x0100)
-		i = 8;
-	else if (mantissa & 0x0080)
-		i = 9;
-	else if (mantissa & 0x0040)
-		i = 10;
-	else if (mantissa & 0x0020)
-		i = 11;
-	else if (mantissa & 0x0010)
-		i = 12;
-	else if (mantissa & 0x0008)
-		i = 13;
-	else if (mantissa & 0x0004)
-		i = 14;
-	else if (mantissa & 0x0002)
-		i = 15;
-	else if (mantissa & 0x0001)
-		i = 16;
+	for(i = 0; i < 16; i++)
+	{
+		if((mantissa << i) & 0x8000)
+			break;
+	}
+	i++;
 
 	/* Exponent is offset by 127 in IEEE format minus the shift to
 	 * align the mantissa to 1.f */

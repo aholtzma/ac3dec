@@ -205,7 +205,6 @@ distdir: $(DISTFILES)
 	    || cp -p $$d/$$file $(distdir)/$$file || :; \
 	  fi; \
 	done
-extract_ac3.o: extract_ac3.c
 
 info-am:
 info: info-am

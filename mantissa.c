@@ -71,6 +71,7 @@ mantissa_unpack(bsi_t *bsi, audblk_t *audblk,bitstream_t *bs)
 {
 	uint_16 i,j;
 	uint_32 start;
+	uint_32 done_cpl = 0;
 
 	mantissa_reset();
 
@@ -83,32 +84,24 @@ mantissa_unpack(bsi_t *bsi, audblk_t *audblk,bitstream_t *bs)
 		for(j=0; j < audblk->endmant[i]; j++)
 			audblk->chmant[i][j] = mantissa_get(bs,audblk->fbw_bap[i][j]);
 
-		//FIXME it is unclear whether mantissas are shared between
-		//channels
-		//mantissa_reset();
+		if(audblk->cplinu && audblk->chincpl[i] && !(done_cpl))
+		{
+			/* ncplmant is equal to 12 * ncplsubnd */
+			for(j=audblk->cplstrtmant; j < audblk->cplendmant; j++)
+				audblk->cplmant[j] = mantissa_get(bs,audblk->cpl_bap[j]);
+			done_cpl = 1;
+		}
 	}
-
-	if(audblk->cplinu)
-	{
-		/* ncplmant is equal to 12 * ncplsubnd */
-		for(j=0; j < 12 * audblk->ncplsubnd; j++)
-			audblk->cplmant[j] = mantissa_get(bs,audblk->cpl_bap[j]);
-
-		//mantissa_reset();
-	}
-
 
 	if(bsi->lfeon)
 	{
 		/* There are always 7 mantissas for lfe */
 		for(j=0; j < 7 ; j++)
 			audblk->lfemant[j] = mantissa_get(bs,audblk->lfe_bap[j]);
-
-		//mantissa_reset();
 	}
 
 	//FIXME remove
-	//fprintf(stderr,"(mant) Read %ld mantissa bits\n",bs->total_bits_read - start);
+	//dprintf("(mant) Read %ld mantissa bits\n",bs->total_bits_read - start);
 }
 
 /* Fetch an unpacked, left justified, and properly biased/dithered mantissa value */

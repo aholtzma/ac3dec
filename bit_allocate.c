@@ -29,8 +29,17 @@ static inline sint_16 logadd(sint_16 a,sint_16  b);
 static sint_16 calc_lowcomp(sint_16 a,sint_16 b0,sint_16 b1,sint_16 bin);
 static inline uint_16 min(sint_16 a,sint_16 b);
 static inline uint_16 max(sint_16 a,sint_16 b);
-static void bit_allocate_channel(uint_16 fscod, sint_16 exps[],sint_16 start,
-		sint_16 end, sint_16 fgain, sint_16 snroffset, uint_16 bap[]);
+static void ba_compute_psd(sint_16 start, sint_16 end, sint_16 exps[], 
+		sint_16 psd[], sint_16 bndpsd[]);
+
+static void ba_compute_excitation(sint_16 start, sint_16 end,sint_16 fgain,
+		sint_16 fastleak, sint_16 slowleak, sint_16 is_lfe, sint_16 bndpsd[],
+		sint_16 excite[]);
+static void ba_compute_mask(sint_16 start, sint_16 end, uint_16 fscod,
+		uint_16 deltbae, uint_16 deltnseg, uint_16 deltoffst[], uint_16 deltba[],
+		uint_16 deltlen[], sint_16 excite[], sint_16 mask[]);
+static void ba_compute_bap(sint_16 start, sint_16 end, sint_16 snroffset,
+		sint_16 psd[], sint_16 mask[], sint_16 bap[]);
 
 /* Misc LUTs for bit allocation process */
 
@@ -142,6 +151,10 @@ static sint_16 fdecay;
 static sint_16 sgain;
 static sint_16 dbknee;
 static sint_16 floor;
+static sint_16 psd[256];
+static sint_16 bndpsd[256];
+static sint_16 excite[256];
+static sint_16 mask[256];
 
 static inline uint_16
 max(sint_16 a,sint_16 b)
@@ -178,8 +191,19 @@ void bit_allocate(uint_16 fscod, bsi_t *bsi, audblk_t *audblk)
 	sint_16 snroffset;
 	sint_16 start;
 	sint_16 end;
+	sint_16 fastleak;
+	sint_16 slowleak;
 
-	/* Do some setup calculations before we do the bit alloc */
+	/* Only perform bit_allocation if the exponents have changed or we
+	 * have new sideband information */
+	if (audblk->chexpstr[0]  == 0 && audblk->chexpstr[1] == 0 &&
+			audblk->chexpstr[2]  == 0 && audblk->chexpstr[3] == 0 &&
+			audblk->chexpstr[4]  == 0 && audblk->cplexpstr   == 0 &&
+			audblk->lfeexpstr    == 0 && audblk->baie        == 0 &&
+			audblk->snroffste    == 0 && audblk->deltbaie    == 0)
+		return;
+
+	/* Do some setup before we do the bit alloc */
 	sdecay = slowdec[audblk->sdcycod]; 
 	fdecay = fastdec[audblk->fdcycod];
 	sgain = slowgain[audblk->sgaincod]; 
@@ -205,8 +229,17 @@ void bit_allocate(uint_16 fscod, bsi_t *bsi, audblk_t *audblk)
 		end = audblk->endmant[i] ; 
 		fgain = fastgain[audblk->fgaincod[i]]; 
 		snroffset = (((audblk->csnroffst - 15) << 4) + audblk->fsnroffst[i]) << 2 ;
+		fastleak = 0;
+		slowleak = 0;
 
-		bit_allocate_channel(fscod, audblk->fbw_exp[i],start,end,fgain,snroffset,audblk->fbw_bap[i]);
+		ba_compute_psd(start, end, audblk->fbw_exp[i], psd, bndpsd);
+
+		ba_compute_excitation(start, end , fgain, fastleak, slowleak, 0, bndpsd, excite);
+
+		ba_compute_mask(start, end, fscod, audblk->deltbae[i], audblk->deltnseg[i], 
+				audblk->deltoffst[i], audblk->deltba[i], audblk->deltlen[i], excite, mask);
+
+		ba_compute_bap(start, end, snroffset, psd, mask, audblk->fbw_bap[i]);
 	}
 
 	if(audblk->cplinu)
@@ -215,8 +248,17 @@ void bit_allocate(uint_16 fscod, bsi_t *bsi, audblk_t *audblk)
 		end = audblk->cplendmant; 
 		fgain = fastgain[audblk->cplfgaincod];
 		snroffset = (((audblk->csnroffst - 15) << 4) + audblk->cplfsnroffst) << 2 ;
+		fastleak = (audblk->cplfleak << 8) + 768; 
+		slowleak = (audblk->cplsleak << 8) + 768;
 
-		bit_allocate_channel(fscod, audblk->cpl_exp,start,end,fgain,snroffset,audblk->cpl_bap);
+		ba_compute_psd(start, end, audblk->cpl_exp, psd, bndpsd);
+
+		ba_compute_excitation(start, end , fgain, fastleak, slowleak, 0, bndpsd, excite);
+
+		ba_compute_mask(start, end, fscod, audblk->cpldeltbae, audblk->cpldeltnseg, 
+				audblk->cpldeltoffst, audblk->cpldeltba, audblk->cpldeltlen, excite, mask);
+
+		ba_compute_bap(start, end, snroffset, psd, mask, audblk->cpl_bap);
 	}
 
 	if(bsi->lfeon)
@@ -225,30 +267,27 @@ void bit_allocate(uint_16 fscod, bsi_t *bsi, audblk_t *audblk)
 		end = 7;
 		fgain = fastgain[audblk->lfefgaincod];
 		snroffset = (((audblk->csnroffst - 15) << 4) + audblk->lfefsnroffst) << 2 ;
-		bit_allocate_channel(fscod, audblk->lfe_exp,start,end,fgain,snroffset,audblk->cpl_bap);
+		fastleak = 0;
+		slowleak = 0;
+
+		ba_compute_psd(start, end, audblk->lfe_exp, psd, bndpsd);
+
+		ba_compute_excitation(start, end , fgain, fastleak, slowleak, 1, bndpsd, excite);
+
+		/* Perform no delta bit allocation for lfe */
+		ba_compute_mask(start, end, fscod, 2, 0, 0, 0, 0, excite, mask);
+
+		ba_compute_bap(start, end, snroffset, psd, mask, audblk->lfe_bap);
 	}
 }
 
 
-
-static void 
-bit_allocate_channel(uint_16 fscod, sint_16 exps[],sint_16 start,sint_16 end,
-		sint_16 fgain, sint_16 snroffset,uint_16 bap[])
+static void ba_compute_psd(sint_16 start, sint_16 end, sint_16 exps[], 
+		sint_16 psd[], sint_16 bndpsd[])
 {
-	sint_16 psd[256];
-	sint_16 bndpsd[256];
-	sint_16 excite[256];
-	sint_16 mask[256];
-	sint_16 lowcomp = 0;
-	sint_16 begin = 0;
-	sint_16 lastbin = 0;
-	sint_16 bndstrt = 0;
-	sint_16 bndend = 0;
-	sint_16 fastleak = 0;
-	sint_16 slowleak = 0;
-	sint_16 address = 0;
 	int bin,i,j,k;
-
+	sint_16 lastbin = 0;
+	
 	/* Map the exponents into dBs */
 	for (bin=start; bin<end; bin++) 
 	{ 
@@ -264,11 +303,7 @@ bit_allocate_channel(uint_16 fscod, sint_16 exps[],sint_16 start,sint_16 end,
 		lastbin = min(bndtab[k] + bndsz[k], end); 
 		bndpsd[k] = psd[j]; 
 		j++; 
-		//FIXME I think there's a problem with using a for loop here.
-		//If the start frequency is in the last bin of a band, then
-		//the first element of the next band gets integrated in before
-		//the termination clause kicks in. This code comes from the 
-		//standard though. I'll assume it works until I find it doesn't
+
 		for (i = j; i < lastbin; i++) 
 		{ 
 			bndpsd[k] = logadd(bndpsd[k], psd[j]);
@@ -277,6 +312,17 @@ bit_allocate_channel(uint_16 fscod, sint_16 exps[],sint_16 start,sint_16 end,
 		
 		k++; 
 	} while (end > lastbin);
+}
+
+static void ba_compute_excitation(sint_16 start, sint_16 end,sint_16 fgain,
+		sint_16 fastleak, sint_16 slowleak, sint_16 is_lfe, sint_16 bndpsd[],
+		sint_16 excite[])
+{
+	int bin;
+	sint_16 bndstrt;
+	sint_16 bndend;
+	sint_16 lowcomp = 0;
+	sint_16 begin = 0;
 
 	/* Compute excitation function */
 	bndstrt = masktab[start]; 
@@ -284,16 +330,17 @@ bit_allocate_channel(uint_16 fscod, sint_16 exps[],sint_16 start,sint_16 end,
 	
 	if (bndstrt == 0) /* For fbw and lfe channels */ 
 	{ 
-		/* Note: Do not call calc_lowcomp() for the last band of the lfe channel, (bin = 6) */ 
 		lowcomp = calc_lowcomp(lowcomp, bndpsd[0], bndpsd[1], 0); 
 		excite[0] = bndpsd[0] - fgain - lowcomp; 
 		lowcomp = calc_lowcomp(lowcomp, bndpsd[1], bndpsd[2], 1);
 		excite[1] = bndpsd[1] - fgain - lowcomp; 
 		begin = 7 ; 
 		
+		/* Note: Do not call calc_lowcomp() for the last band of the lfe channel, (bin = 6) */ 
 		for (bin = 2; bin < 7; bin++) 
 		{ 
-			lowcomp = calc_lowcomp(lowcomp, bndpsd[bin], bndpsd[bin+1], bin); 
+			if (!(is_lfe && (bin == 6)))
+				lowcomp = calc_lowcomp(lowcomp, bndpsd[bin], bndpsd[bin+1], bin); 
 			fastleak = bndpsd[bin] - fgain; 
 			slowleak = bndpsd[bin] - sgain; 
 			excite[bin] = fastleak - lowcomp; 
@@ -329,6 +376,19 @@ bit_allocate_channel(uint_16 fscod, sint_16 exps[],sint_16 start,sint_16 end,
 		slowleak = max(slowleak, bndpsd[bin] - sgain); 
 		excite[bin] = max(fastleak, slowleak) ; 
 	} 
+}
+
+static void ba_compute_mask(sint_16 start, sint_16 end, uint_16 fscod,
+		uint_16 deltbae, uint_16 deltnseg, uint_16 deltoffst[], uint_16 deltba[],
+		uint_16 deltlen[], sint_16 excite[], sint_16 mask[])
+{
+	int bin,k;
+	sint_16 bndstrt;
+	sint_16 bndend;
+	sint_16 delta;
+
+	bndstrt = masktab[start]; 
+	bndend = masktab[end - 1] + 1; 
 
 	/* Compute the masking curve */
 
@@ -341,11 +401,11 @@ bit_allocate_channel(uint_16 fscod, sint_16 exps[],sint_16 start,sint_16 end,
 		mask[bin] = max(excite[bin], hth[fscod][bin]);
 	}
 	
-#if 0
 	/* Perform delta bit modulation if necessary */
 	if ((deltbae == 0) || (deltbae == 1)) 
 	{ 
 		sint_16 band = 0; 
+		sint_16 seg = 0; 
 		
 		for (seg = 0; seg < deltnseg+1; seg++) 
 		{ 
@@ -366,8 +426,14 @@ bit_allocate_channel(uint_16 fscod, sint_16 exps[],sint_16 start,sint_16 end,
 			} 
 		} 
 	}
-#endif
+}
 
+static void ba_compute_bap(sint_16 start, sint_16 end, sint_16 snroffset,
+		sint_16 psd[], sint_16 mask[], sint_16 bap[])
+{
+	int i,j,k;
+	sint_16 lastbin = 0;
+	sint_16 address = 0;
 
 	/* Compute the bit allocation pointer for each bin */
 	i = start; 

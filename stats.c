@@ -30,6 +30,8 @@
 
 /* Misc LUTs that will go elsewhere soon */
 
+static char *service_ids[] = {"CM","ME","VI","HI","D","C","E","VO"};
+
 struct mixlev_s
 {
 	float clev;
@@ -39,53 +41,9 @@ struct mixlev_s
 struct mixlev_s cmixlev_tbl[4] =  {{0.707, "(-3.0 dB)"}, {0.596, "(-4.5 dB)"},
                                  {0.500, "(-6.0 dB)"}, {1.0,  "Invalid"}};
 
-struct mixlev_s smixlev_tbl[4] =  {{0.707, "(-3 dB)"}, {0.500, "(-6 dB)"},
+struct mixlev_s smixlev_tbl[4] =  {{0.707, "(-3.0 dB)"}, {0.500, "(-6.0 dB)"},
                                    {0.0,   "off    "}, {1.0,   "Invalid"}};
-struct frmsize_s
-{
-	uint_16 bit_rate;
-	uint_16 frm_size[3];
-};
 
-struct frmsize_s frmsizecod_tbl[] = {
-      { 32  ,{64   ,69   ,96   } },
-      { 32  ,{64   ,70   ,96   } },
-      { 40  ,{80   ,87   ,120  } },
-      { 40  ,{80   ,88   ,120  } },
-      { 48  ,{96   ,104  ,144  } },
-      { 48  ,{96   ,105  ,144  } },
-      { 56  ,{112  ,121  ,168  } },
-      { 56  ,{112  ,122  ,168  } },
-      { 64  ,{128  ,139  ,192  } },
-      { 64  ,{128  ,140  ,192  } },
-      { 80  ,{160  ,174  ,240  } },
-      { 80  ,{160  ,175  ,240  } },
-      { 96  ,{192  ,208  ,288  } },
-      { 96  ,{192  ,209  ,288  } },
-      { 112 ,{224  ,243  ,336  } },
-      { 112 ,{224  ,244  ,336  } },
-      { 128 ,{256  ,278  ,384  } },
-      { 128 ,{256  ,279  ,384  } },
-      { 160 ,{320  ,348  ,480  } },
-      { 160 ,{320  ,349  ,480  } },
-      { 192 ,{384  ,417  ,576  } },
-      { 192 ,{384  ,418  ,576  } },
-      { 224 ,{448  ,487  ,672  } },
-      { 224 ,{448  ,488  ,672  } },
-      { 256 ,{512  ,557  ,768  } },
-      { 256 ,{512  ,558  ,768  } },
-      { 320 ,{640  ,696  ,960  } },
-      { 320 ,{640  ,697  ,960  } },
-      { 384 ,{768  ,835  ,1152 } },
-      { 384 ,{768  ,836  ,1152 } },
-      { 448 ,{896  ,975  ,1344 } },
-      { 448 ,{896  ,976  ,1344 } },
-      { 512 ,{1024 ,1114 ,1536 } },
-      { 512 ,{1024 ,1115 ,1536 } },
-      { 576 ,{1152 ,1253 ,1728 } },
-      { 576 ,{1152 ,1254 ,1728 } },
-      { 640 ,{1280 ,1393 ,1920 } },
-      { 640 ,{1280 ,1394 ,1920 } }};
 
 void stats_printf_syncinfo(syncinfo_t *syncinfo)
 {
@@ -107,15 +65,15 @@ void stats_printf_syncinfo(syncinfo_t *syncinfo)
 			break;
 	}
 
-	dprintf("%4d kbps %4d words per frame\n",
-			frmsizecod_tbl[syncinfo->frmsizecod].bit_rate,
-			frmsizecod_tbl[syncinfo->frmsizecod].frm_size[syncinfo->fscod]);
+	dprintf("%4d kbps %4d words per frame\n",syncinfo->bit_rate, 
+			syncinfo->frame_size);
 
 }
 	
 void stats_printf_bsi(bsi_t *bsi)
 {
 	dprintf("(bsi) ");
+	dprintf("%s",service_ids[bsi->bsmod]);
 	dprintf(" %d.%d Mode ",bsi->nfchans,bsi->lfeon);
 	if ((bsi->acmod & 0x1) && (bsi->acmod != 0x1))
 		dprintf(" Centre Mix Level %s ",cmixlev_tbl[bsi->cmixlev].desc);

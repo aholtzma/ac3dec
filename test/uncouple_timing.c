@@ -26,21 +26,6 @@ void main(int argc,char *argv[])
 	
 	timing_init();
 
-	for(i=0;i < 256; i++)
-	{
-		time = timing_once_3(convert_to_float,4,rand(),&foo);
-		time_acc += time;
-		printf("%3d - %6.1f ns  ",i, time);
-		if(!(i%4))
-			printf("\n");
-	}
-	printf("\nAverage time - %f ns\n\n",time_acc/256);
+	timing_test_3(convert_to_float,rand() % 24 ,rand(),&foo,"convert_to_float");
 
-	for(i=0;i < 16; i++)
-	{
-		time = timing_once_3(convert_to_float,4,1 << i,&foo);
-		time_acc += time;
-		printf("%3d - %6.1f ns \n",i, time);
-	}
-	printf("\nAverage time - %f ns\n",time_acc/256);
 }

@@ -22,6 +22,10 @@
  *
  */
 
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif 
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
@@ -37,10 +41,12 @@
 #include "parse.h"
 #include "output.h"
 #include "crc.h"
+#include "rematrix.h"
 #include "sys/time.h"
 #include "debug.h"
 
 static void decode_find_sync(bitstream_t *bs);
+static void decode_print_banner(void);
 
 static stream_coeffs_t stream_coeffs;
 static stream_samples_t stream_samples;
@@ -52,9 +58,11 @@ static uint_32 frame_count = 0;
 
 int main(int argc,char *argv[])
 {
-	int i,j=0;
+	int i;
 	bitstream_t *bs;
 	FILE *in_file;
+	int done_banner = 0;
+
 
 	/* If we get an argument then use it as a filename... otherwise use
 	 * stdin */
@@ -76,17 +84,19 @@ int main(int argc,char *argv[])
 	decode_sanity_check_init();
 	output_open(16,48000,2);
 
-
-	/* FIXME check for end of stream and exit */
-
-
-	while(j++ < 5000)
+	while(1)
 	{
 		decode_find_sync(bs);
 
 		parse_syncinfo(&syncinfo,bs);
 
 		parse_bsi(&bsi,bs);
+
+		if(!done_banner)
+		{
+			decode_print_banner();
+			done_banner = 1;
+		}
 
 		for(i=0; i < 6; i++)
 		{
@@ -115,12 +125,12 @@ int main(int argc,char *argv[])
 			uncouple(&bsi,&audblk,&stream_coeffs);
 			decode_sanity_check();
 
+			if(bsi.acmod == 0x2)
+				rematrix(&audblk,&stream_coeffs);
 #if 0
 			/* Perform dynamic range compensation */
 			dynamic_range(&bsi,&audblk,&stream_coeffs); 
 
-			/* Downmix channels appropriately in the frequency domain */
-			downmix(&bsi,&audblk,&stream_coeffs); 
 #endif
 
 			/* Convert the frequency data into time samples */
@@ -130,7 +140,7 @@ int main(int argc,char *argv[])
 			/* Send the samples to the output device */
 			output_play(&stream_samples);
 		}
-		parse_auxdata(bs);
+		parse_auxdata(&syncinfo,bs);
 
 		if(!crc_validate())
 		{
@@ -246,3 +256,53 @@ void decode_sanity_check(void)
 	return;
 }	
 
+
+void decode_print_banner(void)
+{
+	printf(PACKAGE"-"VERSION" (C) 1999 Aaron Holtzman (aholtzma@engr.uvic.ca)\n");
+
+	printf("%d.%d Mode ",bsi.nfchans,bsi.lfeon);
+	switch (syncinfo.fscod)
+	{
+		case 2:
+			printf("32 KHz   ");
+			break;
+		case 1:
+			printf("44.1 KHz ");
+			break;
+		case 0:
+			printf("48 KHz   ");
+			break;
+		default:
+			printf("Invalid sampling rate ");
+			break;
+	}
+	printf("%4d kbps ",syncinfo.bit_rate);
+	switch(bsi.bsmod)
+	{
+		case 0:
+			printf("Complete Main Audio Service");
+			break;
+		case 1:
+			printf("Music and Effects Audio Service");
+		case 2:
+			printf("Visually Impaired Audio Service");
+			break;
+		case 3:
+			printf("Hearing Impaired Audio Service");
+			break;
+		case 4:
+			printf("Dialogue Audio Service");
+			break;
+		case 5:
+			printf("Commentary Audio Service");
+			break;
+		case 6:
+			printf("Emergency Audio Service");
+			break;
+		case 7:
+			printf("Voice Over Audio Service");
+			break;
+	}
+	printf("\n");
+}

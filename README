@@ -18,6 +18,12 @@ be used as a portion of a DVD playback system for unix systems.
 There are issues with DVD encryption and licensing that need to be
 resolved however.
 
+HOW TO COMPILE
+
+Building ac3dec should be easy. Here's how:
+
+./configure && make all
+
 USAGE
 
 To find AC-3 streams on the internet, use www.google.com and 

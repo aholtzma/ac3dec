@@ -46,6 +46,28 @@ timing_test_2(void (*func)(void*,void*),void *arg_1,void *arg_2,char name[])
 	printf("Avg %s time = %lld nsec\n", name,(end - start) / iters);
 }
 
+
+void
+timing_test_3(void (*func)(void*,void*,void*),void *arg_1,void *arg_2,void *arg_3,char name[])
+{
+	hrtime_t start, end;
+	hrtime_t start_i, end_i;
+	int i, iters = 10;
+
+	printf("\nTiming %s 10 times\n",name);
+	start = get_time();
+	for (i = 0; i < iters; i++)
+	{
+		start_i = get_time();
+		func(arg_1,arg_2,arg_3);
+		end_i = get_time();
+		printf("Iteration %d - %lld nsec\n",i,end_i - start_i);
+	}
+	end = get_time();
+
+	printf("Avg %s time = %lld nsec\n", name,(end - start) / iters);
+}
+
 double timing_once_3(void (*func)(void*,void*,void*),void *arg_1,void *arg_2,void *arg_3)
 {
 	hrtime_t start, end;
@@ -62,4 +84,6 @@ double timing_once_3(void (*func)(void*,void*,void*),void *arg_1,void *arg_2,voi
 void timing_init(void) { }
 double timing_once_3(void (*func)(void*,void*,void*),void *arg_1,void *arg_2,void *arg_3) { }
 timing_test_2(void (*func)(void*,void*),void *arg_1,void *arg_2,char name[]) {}
+void
+timing_test_3(void (*func)(void*,void*,void*),void *arg_1,void *arg_2,void *arg_3,char name[]){}
 #endif

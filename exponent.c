@@ -42,8 +42,8 @@ exponent_unpack( bsi_t *bsi, audblk_t *audblk, stream_coeffs_t *coeffs)
 				&audblk->exps[i][1], audblk->fbw_exp[i]);
 
 	if(audblk->cplinu)
-		exp_unpack_ch(UNPACK_CPL, audblk->cplexpstr,audblk->ncplgrps, audblk->cplabsexp,	
-				audblk->cplexps, audblk->cpl_exp);
+		exp_unpack_ch(UNPACK_CPL, audblk->cplexpstr, audblk->ncplgrps, audblk->cplabsexp << 1,	
+				audblk->cplexps, &audblk->cpl_exp[audblk->cplstrtmant]);
 
 	if(bsi->lfeon)
 		exp_unpack_ch(UNPACK_LFE, audblk->lfeexpstr, 2, audblk->lfeexps[0], 

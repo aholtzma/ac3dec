@@ -345,16 +345,20 @@ static void ba_compute_excitation(sint_16 start, sint_16 end,sint_16 fgain,
 			slowleak = bndpsd[bin] - sgain; 
 			excite[bin] = fastleak - lowcomp; 
 			
-			if (bndpsd[bin] <= bndpsd[bin+1]) 
+			if (!(is_lfe && (bin == 6)))
 			{
-				begin = bin + 1 ; 
-				break; 
-			} 
+				if (bndpsd[bin] <= bndpsd[bin+1]) 
+				{
+					begin = bin + 1 ; 
+					break; 
+				} 
+			}
 		} 
 		
 		for (bin = begin; bin < min(bndend, 22); bin++) 
 		{ 
-			lowcomp = calc_lowcomp(lowcomp, bndpsd[bin], bndpsd[bin+1], bin); 
+			if (!(is_lfe && (bin == 6)))
+				lowcomp = calc_lowcomp(lowcomp, bndpsd[bin], bndpsd[bin+1], bin); 
 			fastleak -= fdecay ; 
 			fastleak = max(fastleak, bndpsd[bin] - fgain); 
 			slowleak -= sdecay ; 

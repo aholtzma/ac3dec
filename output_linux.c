@@ -32,6 +32,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <math.h>
 #include <sys/soundcard.h>
 #include <sys/ioctl.h>
 
@@ -40,6 +41,7 @@
 #include "decode.h"
 #include "debug.h"
 #include "output.h"
+#include "downmix.h"
 #include "ring_buffer.h"
 
 
@@ -132,11 +134,13 @@ output_flush(void)
 /*
  * play the sample to the already opened file descriptor
  */
-void output_play(stream_samples_t *samples)
+void output_play(bsi_t *bsi,stream_samples_t *samples)
 {
   int i;
-	float left_sample;
-	float right_sample;
+	float *left,*right;
+	float norm = 1.0;
+	float left_tmp = 0.0;
+	float right_tmp = 0.0;
 	sint_16 *out_buf;
 
 	if(fd < 0)
@@ -156,21 +160,42 @@ void output_play(stream_samples_t *samples)
 	//FIXME remove
 	//matlab_write(foo,samples->channel[0],512);
 	
+	//Downmix if necessary 
+	downmix(bsi,samples);
+
+	//Determine a normalization constant if the signal exceeds 
+	//100% digital [-1.0,1.0]
+	//
+	//perhaps use the dynamic range info to do this instead
+	for(i=0; i< 256;i++)
+	{
+    left_tmp = samples->channel[0][i];
+    right_tmp = samples->channel[1][i];
+
+		if(left_tmp > norm)
+			norm = left_tmp;
+		if(left_tmp < -norm)
+			norm = -left_tmp;
+
+		if(right_tmp > norm)
+			norm = right_tmp;
+		if(right_tmp < -norm)
+			norm = -right_tmp; 
+	}
+	norm = 32000.0/norm;
+
 	/* Take the floating point audio data and convert it into
 	 * 16 bit signed PCM data */
+	left = samples->channel[0];
+	right = samples->channel[1];
 
 	for(i=0; i < 256; i++)
 	{
-		sint_16 left_pcm;
-		sint_16 right_pcm;
+	//	if((fabs(*left * norm) > 32768.0) || (fabs(*right * norm) > 32768.0))
+	//		printf("clipping (%f, %f)\n",*left,*right);
+		out_buf[i * 2 ]    = (sint_16) (*left++  * norm);
+		out_buf[i * 2 + 1] = (sint_16) (*right++ * norm);
 
-		left_sample = samples->channel[0][i];
-		right_sample = samples->channel[1][i];
-
-		left_pcm = left_sample * 32000.0;
-		out_buf[i * 2 ] = left_pcm;
-		right_pcm = right_sample * 32000.0;
-		out_buf[i * 2 + 1] = right_pcm;
 	}
 	rb_end_write();
 

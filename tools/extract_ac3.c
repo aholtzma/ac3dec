@@ -1,14 +1,32 @@
 /*
- * extract_ac3.c
+ *  extract_ac3.c
  *
+ *  Copyright (C) Aaron Holtzman <aholtzma@ess.engr.uvic.ca> - June 1999
  *
- * Aaron Holtzman - June 199
+ *  Extracts an AC-3 audio stream from an MPEG-2 system stream
+ *  and writes it to stdout
  *
- * Extracts an AC-3 audio stream from an MPEG-2 system stream
- * and writes it to stdout
+ *  Ideas and bitstream syntax info borrowed from code written 
+ *  by Nathan Laredo <laredo@gnu.org>
  *
- * Ideas and bitstream syntax info borrowed from code written 
- * by Nathan Laredo (laredo@gnu.org)
+ *  Multiple track support by Yuqing Deng <deng@tinker.chem.brown.edu>
+ * 
+ *
+ *  This file is part of ac3dec, a free Dolby AC-3 stream decoder.
+ *	
+ *  ac3dec is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 2, or (at your option)
+ *  any later version.
+ *   
+ *  ac3dec is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *   
+ *  You should have received a copy of the GNU General Public License
+ *  along with GNU Make; see the file COPYING.  If not, write to
+ *  the Free Software Foundation, 
  *
  */
 
@@ -26,6 +44,12 @@
 static unsigned char *mpeg_data = 0;
 static unsigned char *mpeg_data_end = 0;
 static unsigned char *cur_pos;
+//Audio track to play
+static unsigned char track_code = 0x80;
+static unsigned char track_table[8] = 
+{ 
+	0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87 
+};
 
 int map_file(char file_name[])
 {
@@ -113,16 +137,18 @@ void parse_pes(void)
 	//If we have AC-3 audio then output it
 	if(cur_pos[3] == 0xbd)
 	{
-		//Debuggin printfs
-		//fprintf(stderr,"start of pes curpos[] = %02x%02x%02x%02x\n",
-		//	cur_pos[0],cur_pos[1],cur_pos[2],cur_pos[3]);
-		//fprintf(stderr,"header_length = %d data_length = %x\n",
-		//	header_length, data_length);
-		//fprintf(stderr,"extra crap 0x%02x%02x%02x%02x data size 0x%0lx\n",cur_pos[header_length-4],
-		//	cur_pos[header_length-3],cur_pos[header_length-2],cur_pos[header_length-1],data_length);
+#if 0
+		//Debugging printfs
+		fprintf(stderr,"start of pes curpos[] = %02x%02x%02x%02x\n",
+			cur_pos[0],cur_pos[1],cur_pos[2],cur_pos[3]);
+		fprintf(stderr,"header_length = %d data_length = %x\n",
+			header_length, data_length);
+		fprintf(stderr,"extra crap 0x%02x%02x%02x%02x data size 0x%0lx\n",cur_pos[header_length-4],
+			cur_pos[header_length-3],cur_pos[header_length-2],cur_pos[header_length-1],data_length);
+#endif
 
-		//Make sure it isn't a strange 0x2xxx xxxx packet
-		if((cur_pos[header_length-4] & 0x80 ))
+		//Only extract the track we want
+		if((cur_pos[header_length-4] == track_code )) 
 			fwrite(&cur_pos[header_length],1,data_length - (header_length - 6),stdout);
 	}
 
@@ -135,16 +161,16 @@ void parse_pack(void)
 {
 	unsigned long skip_length;
 
-	/* Deal with the pack header */
-	/* The first 13 bytes are junk. The fourteenth byte 
-	 * contains the number of stuff bytes */
+	// Deal with the pack header 
+	// The first 13 bytes are junk. The fourteenth byte 
+	// contains the number of stuff bytes 
 	skip_length = cur_pos[13] & 0x7;
 	increment_position(14 + skip_length);
 
-	/* Deal with the system header if it exists */
+	// Deal with the system header if it exists 
 	if(next_32_bits(0x000001bb))
 	{
-		/* Bytes 5 and 6 contain the length of the header minus 6 */
+		// Bytes 5 and 6 contain the length of the header minus 6 
 		skip_length = (cur_pos[4] << 8) +  cur_pos[5];
 		increment_position(6 + skip_length);
 	}
@@ -158,11 +184,28 @@ void parse_pack(void)
 int main(int argc, char *argv[])
 {
 	int f;
+	int track = 0;
 
 	if (argc < 2) {
-		fprintf(stderr, "usage: %s mpeg_stream\n", argv[0]);
+		fprintf(stderr, "usage: %s mpeg_stream [track number]\n", argv[0]);
 		exit(1);
 	}
+
+	if (argc == 3) 
+	{
+		track = strtol(argv[2], NULL, 0);
+		fprintf(stderr,"Extracting track %d\n",track);
+	}
+
+	if (track < 0 || track > 7) 
+	{
+		fprintf(stderr, "Invalid track number: %d\n", track);
+		exit(1);
+	}
+
+	track_code = track_table[track];
+
+
 
 	f = map_file(argv[1]);
 

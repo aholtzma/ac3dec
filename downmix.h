@@ -1,7 +1,10 @@
-/* 
- *    crc.c
+/*
  *
- *	Copyright (C) Aaron Holtzman - May 1999
+ *  downmix.h
+ *    
+ *	Copyright (C) Aaron Holtzman - Sept 1999
+ *
+ *	Originally based on code by Yeqing Deng.
  *
  *  This file is part of ac3dec, a free Dolby AC-3 stream decoder.
  *	
@@ -19,49 +22,8 @@
  *  along with GNU Make; see the file COPYING.  If not, write to
  *  the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA. 
  *
+ *
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include "ac3.h"
-#include "crc.h"
+void downmix(bsi_t*, stream_samples_t*);
 
-static uint_16 state;
-
-void
-crc_init(void)
-{
-	state = 0;
-}
-
-
-void
-crc_process(uint_32 data, uint_32 num_bits)
-{
-	uint_32 shift_reg;
-
-	data <<= 32 - num_bits;
-
-	shift_reg = state;
-
-	while(num_bits)
-	{
-		shift_reg <<= 1;
-
-		if((shift_reg >> 16) ^ (data >> 31))
-			shift_reg = (shift_reg ^ 0x8005);
-
-		shift_reg &= 0xffff;
-
-		data <<= 1;
-		num_bits--;
-	}
-
-	state = shift_reg;
-}
-
-int
-crc_validate(void)
-{
-	return(state  == 0);
-}

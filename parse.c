@@ -504,10 +504,10 @@ parse_audblk(bsi_t *bsi,audblk_t *audblk,bitstream_t *bs)
 
 		for(i = 0;i < bsi->nfchans; i++)
 		{
-			if (audblk->cplinu && (audblk->deltbae[i] == DELTA_BIT_NEW))
+			if (audblk->deltbae[i] == DELTA_BIT_NEW)
 			{
 				audblk->deltnseg[i] = bitstream_get(bs,3);
-				for(j = 0; j < audblk->cpldeltnseg + 1; j++)
+				for(j = 0; j < audblk->deltnseg[i] + 1; j++)
 				{
 					audblk->deltoffst[i][j] = bitstream_get(bs,5);
 					audblk->deltlen[i][j] = bitstream_get(bs,4);
@@ -523,13 +523,13 @@ parse_audblk(bsi_t *bsi,audblk_t *audblk,bitstream_t *bs)
 		uint_16 skip_data;
 
 		audblk->skipl = bitstream_get(bs,9);
-		//FIXME remove
+		//XXX remove
 		//fprintf(stderr,"(parse) skipping %d bytes\n",audblk->skipl);
 
 		for(i = 0; i < audblk->skipl ; i++)
 		{
 			skip_data = bitstream_get(bs,8);
-			//FIXME remove
+			//XXX remove
 			//fprintf(stderr,"skipped data %2x\n",skip_data);
 			//if(skip_data != 0)
 			//{	
@@ -552,7 +552,7 @@ parse_auxdata(syncinfo_t *syncinfo,bitstream_t *bs)
 
 	skip_length = (syncinfo->frame_size * 16)  - bs->total_bits_read - 17 - 1;
 
-	//FIXME remove
+	//XXX remove
 	//dprintf("(auxdata) skipping %d auxbits\n",skip_length);
 	
 	for(i=0; i <  skip_length; i++)
@@ -562,7 +562,7 @@ parse_auxdata(syncinfo_t *syncinfo,bitstream_t *bs)
 	//get the auxdata exists bit
 	auxdatae = bitstream_get(bs,1);	
 
-	//FIXME remove
+	//XXX remove
 	//dprintf("auxdatae = %i\n",auxdatae);
 
 	//Skip the CRC reserved bit

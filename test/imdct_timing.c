@@ -6,11 +6,11 @@
  */
 
 #include <stdio.h>
-#include "timing.h"
 #include "ac3.h"
 #include "decode.h"
 #include "bitstream.h"
 #include "imdct.h"
+#include "timing.h"
 
 float i_buf[256];
 float o_buf[512];

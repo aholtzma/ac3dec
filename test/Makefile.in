@@ -66,7 +66,8 @@ PACKAGE = @PACKAGE@
 RANLIB = @RANLIB@
 VERSION = @VERSION@
 
-noinst_PROGRAMS = bitstream_test imdct_test imdct_timing uncouple_timing 
+noinst_PROGRAMS = bitstream_test imdct_test imdct_timing uncouple_timing 	crc_timing
+
 noinst_HEADERS = timing.h
 
 bitstream_test_SOURCES = bitstream_test.c
@@ -79,7 +80,10 @@ imdct_timing_SOURCES = imdct_timing.c timing.c
 imdct_timing_LDADD = ../imdct.o -lm
 
 uncouple_timing_SOURCES = uncouple_timing.c timing.c
-uncouple_timing_LDADD = ../uncouple.o -lm
+uncouple_timing_LDADD = ../uncouple.o ../dither.o -lm
+
+crc_timing_SOURCES = crc_timing.c timing.c
+crc_timing_LDADD = ../crc.o -lm
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
 CONFIG_HEADER = ../config.h
 CONFIG_CLEAN_FILES = 
@@ -100,8 +104,11 @@ imdct_timing_OBJECTS =  imdct_timing.o timing.o
 imdct_timing_DEPENDENCIES =  ../imdct.o
 imdct_timing_LDFLAGS = 
 uncouple_timing_OBJECTS =  uncouple_timing.o timing.o
-uncouple_timing_DEPENDENCIES =  ../uncouple.o
+uncouple_timing_DEPENDENCIES =  ../uncouple.o ../dither.o
 uncouple_timing_LDFLAGS = 
+crc_timing_OBJECTS =  crc_timing.o timing.o
+crc_timing_DEPENDENCIES =  ../crc.o
+crc_timing_LDFLAGS = 
 CFLAGS = @CFLAGS@
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
 CCLD = $(CC)
@@ -115,16 +122,19 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
 TAR = tar
 GZIP_ENV = --best
-SOURCES = $(bitstream_test_SOURCES) $(imdct_test_SOURCES) $(imdct_timing_SOURCES) $(uncouple_timing_SOURCES)
-OBJECTS = $(bitstream_test_OBJECTS) $(imdct_test_OBJECTS) $(imdct_timing_OBJECTS) $(uncouple_timing_OBJECTS)
+DEP_FILES =  .deps/bitstream_test.P .deps/crc_timing.P \
+.deps/imdct_test.P .deps/imdct_timing.P .deps/timing.P \
+.deps/uncouple_timing.P
+SOURCES = $(bitstream_test_SOURCES) $(imdct_test_SOURCES) $(imdct_timing_SOURCES) $(uncouple_timing_SOURCES) $(crc_timing_SOURCES)
+OBJECTS = $(bitstream_test_OBJECTS) $(imdct_test_OBJECTS) $(imdct_timing_OBJECTS) $(uncouple_timing_OBJECTS) $(crc_timing_OBJECTS)
 
 all: all-redirect
 .SUFFIXES:
 .SUFFIXES: .S .c .o .s
 $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
-	cd $(top_srcdir) && $(AUTOMAKE) --gnu --include-deps test/Makefile
+	cd $(top_srcdir) && $(AUTOMAKE) --gnu test/Makefile
 
-Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
+Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status $(BUILT_SOURCES)
 	cd $(top_builddir) \
 	  && CONFIG_FILES=$(subdir)/$@ CONFIG_HEADERS= $(SHELL) ./config.status
 
@@ -137,9 +147,6 @@ clean-noinstPROGRAMS:
 distclean-noinstPROGRAMS:
 
 maintainer-clean-noinstPROGRAMS:
-
-.c.o:
-	$(COMPILE) -c $<
 
 .s.o:
 	$(COMPILE) -c $<
@@ -172,6 +179,10 @@ imdct_timing: $(imdct_timing_OBJECTS) $(imdct_timing_DEPENDENCIES)
 uncouple_timing: $(uncouple_timing_OBJECTS) $(uncouple_timing_DEPENDENCIES)
 	@rm -f uncouple_timing
 	$(LINK) $(uncouple_timing_LDFLAGS) $(uncouple_timing_OBJECTS) $(uncouple_timing_LDADD) $(LIBS)
+
+crc_timing: $(crc_timing_OBJECTS) $(crc_timing_DEPENDENCIES)
+	@rm -f crc_timing
+	$(LINK) $(crc_timing_LDFLAGS) $(crc_timing_OBJECTS) $(crc_timing_LDADD) $(LIBS)
 
 tags: TAGS
 
@@ -207,6 +218,11 @@ distdir = $(top_builddir)/$(PACKAGE)-$(VERSION)/$(subdir)
 subdir = test
 
 distdir: $(DISTFILES)
+	here=`cd $(top_builddir) && pwd`; \
+	top_distdir=`cd $(top_distdir) && pwd`; \
+	distdir=`cd $(distdir) && pwd`; \
+	cd $(top_srcdir) \
+	  && $(AUTOMAKE) --include-deps --build-dir=$$here --srcdir-name=$(top_srcdir) --output-dir=$$top_distdir --gnu test/Makefile
 	@for file in $(DISTFILES); do \
 	  d=$(srcdir); \
 	  if test -d $$d/$$file; then \
@@ -217,15 +233,38 @@ distdir: $(DISTFILES)
 	    || cp -p $$d/$$file $(distdir)/$$file || :; \
 	  fi; \
 	done
-bitstream_test.o: bitstream_test.c ../ac3.h ../bitstream.h
-imdct_test.o: imdct_test.c ../ac3.h ../bitstream.h ../decode.h \
-	../imdct.h
-imdct_timing.o: imdct_timing.c timing.h ../ac3.h ../decode.h \
-	../bitstream.h ../imdct.h
-timing.o: timing.c
-uncouple_timing.o: uncouple_timing.c timing.h ../ac3.h ../decode.h \
-	../bitstream.h ../imdct.h
 
+DEPS_MAGIC := $(shell mkdir .deps > /dev/null 2>&1 || :)
+
+-include $(DEP_FILES)
+
+mostlyclean-depend:
+
+clean-depend:
+
+distclean-depend:
+	-rm -rf .deps
+
+maintainer-clean-depend:
+
+%.o: %.c
+	@echo '$(COMPILE) -c $<'; \
+	$(COMPILE) -Wp,-MD,.deps/$(*F).pp -c $<
+	@-cp .deps/$(*F).pp .deps/$(*F).P; \
+	tr ' ' '\012' < .deps/$(*F).pp \
+	  | sed -e 's/^\\$$//' -e '/^$$/ d' -e '/:$$/ d' -e 's/$$/ :/' \
+	    >> .deps/$(*F).P; \
+	rm .deps/$(*F).pp
+
+%.lo: %.c
+	@echo '$(LTCOMPILE) -c $<'; \
+	$(LTCOMPILE) -Wp,-MD,.deps/$(*F).pp -c $<
+	@-sed -e 's/^\([^:]*\)\.o[ 	]*:/\1.lo \1.o :/' \
+	  < .deps/$(*F).pp > .deps/$(*F).P; \
+	tr ' ' '\012' < .deps/$(*F).pp \
+	  | sed -e 's/^\\$$//' -e '/^$$/ d' -e '/:$$/ d' -e 's/$$/ :/' \
+	    >> .deps/$(*F).P; \
+	rm -f .deps/$(*F).pp
 info-am:
 info: info-am
 dvi-am:
@@ -262,23 +301,24 @@ distclean-generic:
 
 maintainer-clean-generic:
 mostlyclean-am:  mostlyclean-noinstPROGRAMS mostlyclean-compile \
-		mostlyclean-tags mostlyclean-generic
+		mostlyclean-tags mostlyclean-depend mostlyclean-generic
 
 mostlyclean: mostlyclean-am
 
-clean-am:  clean-noinstPROGRAMS clean-compile clean-tags clean-generic \
-		mostlyclean-am
+clean-am:  clean-noinstPROGRAMS clean-compile clean-tags clean-depend \
+		clean-generic mostlyclean-am
 
 clean: clean-am
 
 distclean-am:  distclean-noinstPROGRAMS distclean-compile distclean-tags \
-		distclean-generic clean-am
+		distclean-depend distclean-generic clean-am
 
 distclean: distclean-am
 
 maintainer-clean-am:  maintainer-clean-noinstPROGRAMS \
 		maintainer-clean-compile maintainer-clean-tags \
-		maintainer-clean-generic distclean-am
+		maintainer-clean-depend maintainer-clean-generic \
+		distclean-am
 	@echo "This command is intended for maintainers to use;"
 	@echo "it deletes files that may require special tools to rebuild."
 
@@ -288,12 +328,13 @@ maintainer-clean: maintainer-clean-am
 clean-noinstPROGRAMS maintainer-clean-noinstPROGRAMS \
 mostlyclean-compile distclean-compile clean-compile \
 maintainer-clean-compile tags mostlyclean-tags distclean-tags \
-clean-tags maintainer-clean-tags distdir info-am info dvi-am dvi check \
-check-am installcheck-am installcheck install-exec-am install-exec \
-install-data-am install-data install-am install uninstall-am uninstall \
-all-redirect all-am all installdirs mostlyclean-generic \
-distclean-generic clean-generic maintainer-clean-generic clean \
-mostlyclean distclean maintainer-clean
+clean-tags maintainer-clean-tags distdir mostlyclean-depend \
+distclean-depend clean-depend maintainer-clean-depend info-am info \
+dvi-am dvi check check-am installcheck-am installcheck install-exec-am \
+install-exec install-data-am install-data install-am install \
+uninstall-am uninstall all-redirect all-am all installdirs \
+mostlyclean-generic distclean-generic clean-generic \
+maintainer-clean-generic clean mostlyclean distclean maintainer-clean
 
 
 check:

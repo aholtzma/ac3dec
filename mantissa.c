@@ -27,6 +27,7 @@
 #include "ac3.h"
 #include "decode.h"
 #include "bitstream.h"
+#include "dither.h"
 #include "mantissa.h"
 
 //Lookup tables of 0.16 two's complement quantization values
@@ -62,51 +63,44 @@ static uint_16 m_4_pointer;
 //zeros account for cases 0,1,2,4 which are special cased
 static uint_16 qnttztab[16] = { 0, 0, 0, 3, 0 , 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16};
 
-static uint_16 mantissa_get_dither(void);
-static uint_16 mantissa_get(bitstream_t *bs, uint_16 bap);
+static uint_16 mantissa_get(bitstream_t *bs, uint_16 bap, uint_16 dithflag);
 static void mantissa_reset(void);
 
 void
 mantissa_unpack(bsi_t *bsi, audblk_t *audblk,bitstream_t *bs)
 {
 	uint_16 i,j;
-	uint_32 start;
 	uint_32 done_cpl = 0;
 
 	mantissa_reset();
 
-
-	//FIXME remove
-	start = bs->total_bits_read;
-
 	for(i=0; i< bsi->nfchans; i++)
 	{
 		for(j=0; j < audblk->endmant[i]; j++)
-			audblk->chmant[i][j] = mantissa_get(bs,audblk->fbw_bap[i][j]);
+			audblk->chmant[i][j] = mantissa_get(bs,audblk->fbw_bap[i][j],audblk->dithflag[i]);
 
 		if(audblk->cplinu && audblk->chincpl[i] && !(done_cpl))
 		{
 			/* ncplmant is equal to 12 * ncplsubnd */
+			/* Don't dither coupling channel until channel separation so that
+			 * interchannel noise is uncorrelated */
 			for(j=audblk->cplstrtmant; j < audblk->cplendmant; j++)
-				audblk->cplmant[j] = mantissa_get(bs,audblk->cpl_bap[j]);
+				audblk->cplmant[j] = mantissa_get(bs,audblk->cpl_bap[j],0);
 			done_cpl = 1;
 		}
 	}
 
 	if(bsi->lfeon)
 	{
-		/* There are always 7 mantissas for lfe */
+		/* There are always 7 mantissas for lfe, no dither for lfe */
 		for(j=0; j < 7 ; j++)
-			audblk->lfemant[j] = mantissa_get(bs,audblk->lfe_bap[j]);
+			audblk->lfemant[j] = mantissa_get(bs,audblk->lfe_bap[j],0);
 	}
-
-	//FIXME remove
-	//dprintf("(mant) Read %ld mantissa bits\n",bs->total_bits_read - start);
 }
 
 /* Fetch an unpacked, left justified, and properly biased/dithered mantissa value */
 static uint_16
-mantissa_get(bitstream_t *bs, uint_16 bap)
+mantissa_get(bitstream_t *bs, uint_16 bap, uint_16 dithflag)
 {
 	uint_16 result;
 	uint_16 group_code;
@@ -115,8 +109,10 @@ mantissa_get(bitstream_t *bs, uint_16 bap)
 	switch(bap)
 	{
 		case 0:
-			//FIXME change to respect the dither flag
-			result = mantissa_get_dither();
+			if(dithflag)
+				result = dither_gen();
+			else
+				result = 0;
 			break;
 
 		case 1:
@@ -207,11 +203,5 @@ mantissa_reset(void)
 	m_2[2] = m_2[1] = m_2[0] = 0;
 	m_4[1] = m_4[0] = 0;
 	m_1_pointer = m_2_pointer = m_4_pointer = 3;
-}
-
-static uint_16 mantissa_get_dither(void)
-{
-//	return rand();
-	return 0;
 }
 

@@ -1,4 +1,5 @@
-noinst_PROGRAMS = bitstream_test imdct_test imdct_timing uncouple_timing 
+noinst_PROGRAMS = bitstream_test imdct_test imdct_timing uncouple_timing\
+	crc_timing
 noinst_HEADERS = timing.h
 
 bitstream_test_SOURCES = bitstream_test.c
@@ -11,7 +12,10 @@ imdct_timing_SOURCES = imdct_timing.c timing.c
 imdct_timing_LDADD = ../imdct.o -lm
 
 uncouple_timing_SOURCES = uncouple_timing.c timing.c
-uncouple_timing_LDADD = ../uncouple.o -lm
+uncouple_timing_LDADD = ../uncouple.o ../dither.o -lm
+
+crc_timing_SOURCES = crc_timing.c timing.c
+crc_timing_LDADD = ../crc.o -lm
 
 check:
 	rm -f bitstream_test.out

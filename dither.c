@@ -1,5 +1,5 @@
 /* 
- *    crc.c
+ *    dither.c
  *
  *	Copyright (C) Aaron Holtzman - May 1999
  *
@@ -21,47 +21,42 @@
  *
  */
 
+
 #include <stdlib.h>
 #include <stdio.h>
 #include "ac3.h"
-#include "crc.h"
+#include "dither.h"
 
-static uint_16 state;
+static uint_32 lfsr_state = 1;
 
-void
-crc_init(void)
+/* 
+ * Generate eight bits of pseudo-entropy using a 16 bit linear
+ * feedback shift register (LFSR). The primitive polynomial used
+ * is 1 + x^4 + x^14 + x^16.
+ *
+ * The distribution is uniform, over the range [-0.707,0.707]
+ *
+ */
+uint_16 dither_gen(void)
 {
-	state = 0;
-}
+	int i;
+	uint_32 state;
 
+	//explicitly bring the state into a local var as gcc > 3.0?
+	//doesn't know how to optimize out the stores
+	state = lfsr_state;
 
-void
-crc_process(uint_32 data, uint_32 num_bits)
-{
-	uint_32 shift_reg;
-
-	data <<= 32 - num_bits;
-
-	shift_reg = state;
-
-	while(num_bits)
+	//Generate eight pseudo random bits
+	for(i=0;i<8;i++)
 	{
-		shift_reg <<= 1;
+		state <<= 1;	
 
-		if((shift_reg >> 16) ^ (data >> 31))
-			shift_reg = (shift_reg ^ 0x8005);
-
-		shift_reg &= 0xffff;
-
-		data <<= 1;
-		num_bits--;
+		if(state & 0x10000)
+			state ^= 0xa011;
 	}
 
-	state = shift_reg;
+	lfsr_state = state;
+
+	return (((((sint_32)state<<8)>>8) * (sint_32) (0.707106 * 256.0))>>16);
 }
 
-int
-crc_validate(void)
-{
-	return(state  == 0);
-}

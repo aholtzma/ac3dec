@@ -25,5 +25,5 @@
  */
 
 int output_open(int bits, int rate, int channels);
-void output_play(stream_samples_t *samples);
+void output_play(bsi_t *bsi, stream_samples_t *samples);
 void output_close(void);

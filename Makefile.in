@@ -70,16 +70,16 @@ VERSION = @VERSION@
 
 AUTOMAKE_OPTIONS = 1.3 foreign
 
-CFLAGS = -Wall -Werror -O3 -g 
+CFLAGS = -Wall -Werror -O3 -g
 
 bin_PROGRAMS = ac3dec 
 
 ac3dec_LDADD = -lm
 
-ac3dec_SOURCES = bitstream.c decode.c imdct.c mantissa.c exponent.c stats.c 	bit_allocate.c uncouple.c output.c parse.c crc.c debug.c ring_buffer.c 	matlab.c rematrix.c
+ac3dec_SOURCES = bitstream.c decode.c imdct.c mantissa.c exponent.c stats.c 	bit_allocate.c uncouple.c output.c parse.c crc.c debug.c ring_buffer.c 	matlab.c rematrix.c downmix.c dither.c
 
 
-noinst_HEADERS = bitstream.h decode.h imdct.h ac3.h stats.h mantissa.h 	exponent.h bit_allocate.h uncouple.h output.h parse.h crc.h debug.h 	ring_buffer.h matlab.h rematrix.h
+noinst_HEADERS = bitstream.h decode.h imdct.h ac3.h stats.h mantissa.h 	exponent.h bit_allocate.h uncouple.h output.h parse.h crc.h debug.h 	ring_buffer.h matlab.h rematrix.h downmix.h dither.h
 
 
 EXTRA_ac3dec_SOURCES = output_linux.c output_solaris.c
@@ -100,7 +100,7 @@ LDFLAGS = @LDFLAGS@
 LIBS = @LIBS@
 ac3dec_OBJECTS =  bitstream.o decode.o imdct.o mantissa.o exponent.o \
 stats.o bit_allocate.o uncouple.o output.o parse.o crc.o debug.o \
-ring_buffer.o matlab.o rematrix.o
+ring_buffer.o matlab.o rematrix.o downmix.o dither.o
 ac3dec_DEPENDENCIES = 
 ac3dec_LDFLAGS = 
 COMPILE = $(CC) $(DEFS) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CFLAGS) $(CFLAGS)
@@ -117,6 +117,12 @@ DISTFILES = $(DIST_COMMON) $(SOURCES) $(HEADERS) $(TEXINFOS) $(EXTRA_DIST)
 
 TAR = tar
 GZIP_ENV = --best
+DEP_FILES =  .deps/bit_allocate.P .deps/bitstream.P .deps/crc.P \
+.deps/debug.P .deps/decode.P .deps/dither.P .deps/downmix.P \
+.deps/exponent.P .deps/imdct.P .deps/mantissa.P .deps/matlab.P \
+.deps/output.P .deps/output_linux.P .deps/output_solaris.P \
+.deps/parse.P .deps/rematrix.P .deps/ring_buffer.P .deps/stats.P \
+.deps/uncouple.P
 SOURCES = $(ac3dec_SOURCES) $(EXTRA_ac3dec_SOURCES)
 OBJECTS = $(ac3dec_OBJECTS)
 
@@ -124,9 +130,9 @@ all: all-redirect
 .SUFFIXES:
 .SUFFIXES: .S .c .o .s
 $(srcdir)/Makefile.in: @MAINTAINER_MODE_TRUE@ Makefile.am $(top_srcdir)/configure.in $(ACLOCAL_M4) 
-	cd $(top_srcdir) && $(AUTOMAKE) --foreign --include-deps Makefile
+	cd $(top_srcdir) && $(AUTOMAKE) --foreign Makefile
 
-Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status
+Makefile: $(srcdir)/Makefile.in  $(top_builddir)/config.status $(BUILT_SOURCES)
 	cd $(top_builddir) \
 	  && CONFIG_FILES=$@ CONFIG_HEADERS= $(SHELL) ./config.status
 
@@ -190,9 +196,6 @@ uninstall-binPROGRAMS:
 	list='$(bin_PROGRAMS)'; for p in $$list; do \
 	  rm -f $(DESTDIR)$(bindir)/`echo $$p|sed 's/$(EXEEXT)$$//'|sed '$(transform)'|sed 's/$$/$(EXEEXT)/'`; \
 	done
-
-.c.o:
-	$(COMPILE) -c $<
 
 .s.o:
 	$(COMPILE) -c $<
@@ -341,6 +344,11 @@ distdir: $(DISTFILES)
 	-rm -rf $(distdir)
 	mkdir $(distdir)
 	-chmod 777 $(distdir)
+	here=`cd $(top_builddir) && pwd`; \
+	top_distdir=`cd $(distdir) && pwd`; \
+	distdir=`cd $(distdir) && pwd`; \
+	cd $(top_srcdir) \
+	  && $(AUTOMAKE) --include-deps --build-dir=$$here --srcdir-name=$(top_srcdir) --output-dir=$$top_distdir --foreign Makefile
 	@for file in $(DISTFILES); do \
 	  d=$(srcdir); \
 	  if test -d $$d/$$file; then \
@@ -361,25 +369,38 @@ distdir: $(DISTFILES)
 	      || exit 1; \
 	  fi; \
 	done
-bit_allocate.o: bit_allocate.c ac3.h
-bitstream.o: bitstream.c ac3.h decode.h crc.h bitstream.h
-crc.o: crc.c ac3.h crc.h
-debug.o: debug.c debug.h
-decode.o: decode.c config.h ac3.h decode.h bitstream.h imdct.h \
-	exponent.h mantissa.h bit_allocate.h uncouple.h parse.h \
-	output.h crc.h rematrix.h debug.h
-exponent.o: exponent.c ac3.h decode.h exponent.h
-imdct.o: imdct.c ac3.h decode.h imdct.h
-mantissa.o: mantissa.c ac3.h decode.h bitstream.h mantissa.h
-matlab.o: matlab.c matlab.h
-output.o: output.c config.h ac3.h decode.h debug.h output.h \
-	ring_buffer.h
-parse.o: parse.c ac3.h decode.h bitstream.h stats.h debug.h parse.h
-rematrix.o: rematrix.c ac3.h decode.h rematrix.h
-ring_buffer.o: ring_buffer.c ring_buffer.h
-stats.o: stats.c ac3.h decode.h stats.h debug.h
-uncouple.o: uncouple.c ac3.h decode.h uncouple.h
 
+DEPS_MAGIC := $(shell mkdir .deps > /dev/null 2>&1 || :)
+
+-include $(DEP_FILES)
+
+mostlyclean-depend:
+
+clean-depend:
+
+distclean-depend:
+	-rm -rf .deps
+
+maintainer-clean-depend:
+
+%.o: %.c
+	@echo '$(COMPILE) -c $<'; \
+	$(COMPILE) -Wp,-MD,.deps/$(*F).pp -c $<
+	@-cp .deps/$(*F).pp .deps/$(*F).P; \
+	tr ' ' '\012' < .deps/$(*F).pp \
+	  | sed -e 's/^\\$$//' -e '/^$$/ d' -e '/:$$/ d' -e 's/$$/ :/' \
+	    >> .deps/$(*F).P; \
+	rm .deps/$(*F).pp
+
+%.lo: %.c
+	@echo '$(LTCOMPILE) -c $<'; \
+	$(LTCOMPILE) -Wp,-MD,.deps/$(*F).pp -c $<
+	@-sed -e 's/^\([^:]*\)\.o[ 	]*:/\1.lo \1.o :/' \
+	  < .deps/$(*F).pp > .deps/$(*F).P; \
+	tr ' ' '\012' < .deps/$(*F).pp \
+	  | sed -e 's/^\\$$//' -e '/^$$/ d' -e '/:$$/ d' -e 's/$$/ :/' \
+	    >> .deps/$(*F).P; \
+	rm -f .deps/$(*F).pp
 info-am:
 info: info-recursive
 dvi-am:
@@ -421,25 +442,27 @@ distclean-generic:
 
 maintainer-clean-generic:
 mostlyclean-am:  mostlyclean-hdr mostlyclean-binPROGRAMS \
-		mostlyclean-compile mostlyclean-tags \
+		mostlyclean-compile mostlyclean-tags mostlyclean-depend \
 		mostlyclean-generic
 
 mostlyclean: mostlyclean-recursive
 
 clean-am:  clean-hdr clean-binPROGRAMS clean-compile clean-tags \
-		clean-generic mostlyclean-am
+		clean-depend clean-generic mostlyclean-am
 
 clean: clean-recursive
 
 distclean-am:  distclean-hdr distclean-binPROGRAMS distclean-compile \
-		distclean-tags distclean-generic clean-am
+		distclean-tags distclean-depend distclean-generic \
+		clean-am
 
 distclean: distclean-recursive
 	-rm -f config.status
 
 maintainer-clean-am:  maintainer-clean-hdr maintainer-clean-binPROGRAMS \
 		maintainer-clean-compile maintainer-clean-tags \
-		maintainer-clean-generic distclean-am
+		maintainer-clean-depend maintainer-clean-generic \
+		distclean-am
 	@echo "This command is intended for maintainers to use;"
 	@echo "it deletes files that may require special tools to rebuild."
 
@@ -456,10 +479,12 @@ uninstall-exec-recursive installdirs-recursive uninstalldirs-recursive \
 all-recursive check-recursive installcheck-recursive info-recursive \
 dvi-recursive mostlyclean-recursive distclean-recursive clean-recursive \
 maintainer-clean-recursive tags tags-recursive mostlyclean-tags \
-distclean-tags clean-tags maintainer-clean-tags distdir info-am info \
-dvi-am dvi check check-am installcheck-am installcheck all-recursive-am \
-install-exec-am install-exec install-data-am install-data install-am \
-install uninstall-am uninstall all-redirect all-am all installdirs-am \
+distclean-tags clean-tags maintainer-clean-tags distdir \
+mostlyclean-depend distclean-depend clean-depend \
+maintainer-clean-depend info-am info dvi-am dvi check check-am \
+installcheck-am installcheck all-recursive-am install-exec-am \
+install-exec install-data-am install-data install-am install \
+uninstall-am uninstall all-redirect all-am all installdirs-am \
 installdirs mostlyclean-generic distclean-generic clean-generic \
 maintainer-clean-generic clean mostlyclean distclean maintainer-clean
 

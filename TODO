@@ -1,9 +1,15 @@
-- Add proper error detection.
 - Mute frame on error.
-- Use proper frame sizes in auxdata parsing - DONE July 1999 - AH
-- Separate uint_* typedefs from ac3.h
-- Fix coupling channel support - DONE July 1999 - AH
-- Add delta bit allocation support - DONE July 1999 - AH
 - Detect hrtime on solaris and enable it via config.h
 - Add multilevel debug output
-- Add downmixing support
+- Separate uint_* typedefs from ac3.h
+- the output signal from the IMDCT sometimes is outside the rand
+  of [-1.0,1.0]. This is why there is the normalization pass in
+	output.c. Need to investigate and hopefully we can move the
+	normalization.
+
+DONE
+- Use proper frame sizes in auxdata parsing - DONE July 1999 - AH
+- fix clipping in output (normalize to max digital output) - DONE Aug 99 -AH
+- Fix coupling channel support - DONE July 1999 - AH
+- Add delta bit allocation support - DONE July 1999 - AH
+- Add downmixing support - DONE Sept 1999 - AH, Yeqing Deng

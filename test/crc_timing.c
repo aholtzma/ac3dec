@@ -25,8 +25,8 @@ void main(int argc,char *argv[])
 	double time_acc;
 	uint_64 start,end,elapsed,correction;	
 	uint_32 iters = 100000;
-	uint_16 exp;
-	uint_16 mant;
+	uint_16 data;
+	uint_16 numbits;
 	double mean = 0;
 	double variance = 0;
 
@@ -36,10 +36,10 @@ void main(int argc,char *argv[])
 	printf("Timing convert_to_float %d times\n",iters);
 	for (i = 0; i < iters; i++)
 	{
-		mant = 	rand();
-		exp = rand() % 24;
+		data = 	rand();
+		numbits = rand() % 16;
 		start = get_time();
-		convert_to_float(exp ,mant,&foo);
+		crc_process(data ,numbits,&foo);
 		end = get_time();
 		//printf("Iteration %d - %lld nsec\n",i,end - start);
 		if(i>0)

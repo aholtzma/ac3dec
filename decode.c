@@ -56,6 +56,8 @@ static syncinfo_t syncinfo;
 static uint_32 frame_count = 0;
 
 
+prefs_t global_prefs = {0,0};
+
 int main(int argc,char *argv[])
 {
 	int i;
@@ -138,7 +140,7 @@ int main(int argc,char *argv[])
 			decode_sanity_check();
 
 			/* Send the samples to the output device */
-			output_play(&stream_samples);
+			output_play(&bsi,&stream_samples);
 		}
 		parse_auxdata(&syncinfo,bs);
 
@@ -260,7 +262,7 @@ void decode_sanity_check(void)
 
 void decode_print_banner(void)
 {
-	printf(PACKAGE"-"VERSION" (C) 1999 Aaron Holtzman (aholtzma@engr.uvic.ca)\n");
+	printf(PACKAGE"-"VERSION" (C) 1999 Aaron Holtzman (aholtzma@ess.engr.uvic.ca)\n");
 
 	printf("%d.%d Mode ",bsi.nfchans,bsi.lfeon);
 	switch (syncinfo.fscod)

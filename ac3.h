@@ -25,6 +25,7 @@
 #define inline 
 #endif
 
+typedef unsigned long long uint_64;
 typedef unsigned long  uint_32;
 typedef unsigned short uint_16;
 typedef unsigned char  uint_8;
@@ -44,6 +45,17 @@ typedef signed char    sint_8;
 #define DELTA_BIT_NEW (1)
 #define DELTA_BIT_NONE (2)
 #define DELTA_BIT_RESERVED (3)
+
+
+/* global preferences structure */
+typedef struct prefs_s
+{
+	uint_16 use_dolby_surround;
+	uint_16 dual_mono_channel_select;
+} prefs_t;
+
+extern prefs_t global_prefs;
+
 
 /* The following structures are filled in by their corresponding parse_*
  * functions. See http://www.atsc.org/Standards/A52/a_52.pdf for

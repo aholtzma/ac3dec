@@ -1,5 +1,5 @@
 /* 
- *    crc.c
+ *    dither.h
  *
  *	Copyright (C) Aaron Holtzman - May 1999
  *
@@ -21,47 +21,5 @@
  *
  */
 
-#include <stdlib.h>
-#include <stdio.h>
-#include "ac3.h"
-#include "crc.h"
 
-static uint_16 state;
-
-void
-crc_init(void)
-{
-	state = 0;
-}
-
-
-void
-crc_process(uint_32 data, uint_32 num_bits)
-{
-	uint_32 shift_reg;
-
-	data <<= 32 - num_bits;
-
-	shift_reg = state;
-
-	while(num_bits)
-	{
-		shift_reg <<= 1;
-
-		if((shift_reg >> 16) ^ (data >> 31))
-			shift_reg = (shift_reg ^ 0x8005);
-
-		shift_reg &= 0xffff;
-
-		data <<= 1;
-		num_bits--;
-	}
-
-	state = shift_reg;
-}
-
-int
-crc_validate(void)
-{
-	return(state  == 0);
-}
+uint_16 dither_gen(void);
